@@ -1,0 +1,116 @@
+# V4REG — Market Regime Expert Configuration
+# Expert ID: V4REG
+# Type: Market-wide (VNINDEX-based, not per-symbol)
+
+expert_id: V4REG
+expert_name: Market Regime Expert
+group: CONTEXT
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALES
+# ---------------------------------------------------------------------------
+trend_regime:
+  min: -4
+  max: 4
+
+vol_regime:
+  min: 0
+  max: 4
+
+liquidity_regime:
+  min: -2
+  max: 2
+
+# ---------------------------------------------------------------------------
+# TREND STRUCTURE SCORE (component A, range -2..+2)
+# ---------------------------------------------------------------------------
+trend_structure:
+  ma_periods: [20, 50, 200]
+  slope_window: 5          # days to compute MA slope
+
+# ---------------------------------------------------------------------------
+# BREADTH SCORE (component B, range -2..+2)
+# ---------------------------------------------------------------------------
+breadth:
+  ma_period: 50            # % stocks above MA50
+  ad_smoothing: 5          # days to smooth A/D ratio
+  strong_threshold: 0.70   # >= 70% above MA50 → +2
+  weak_threshold: 0.25     # <= 25% above MA50 → -2
+
+# ---------------------------------------------------------------------------
+# MOMENTUM SCORE (component C, range -2..+2)
+# ---------------------------------------------------------------------------
+momentum:
+  short_period: 20         # 20-day return
+  long_period: 60          # 60-day return
+  strong_positive: 0.08    # 8% → strong bull
+  mild_positive: 0.02      # 2% → mild bull
+  mild_negative: -0.02
+  strong_negative: -0.08
+
+# ---------------------------------------------------------------------------
+# DRAWDOWN STRESS (component D, range -2..0)
+# ---------------------------------------------------------------------------
+drawdown:
+  lookback: 120            # rolling high lookback
+  mild_threshold: 0.05     # 5% drawdown → -1
+  severe_threshold: 0.12   # 12% drawdown → -2
+
+# ---------------------------------------------------------------------------
+# WEIGHTED COMBINATION → trend_regime_score
+# ---------------------------------------------------------------------------
+weights:
+  trend_structure: 0.40
+  breadth: 0.25
+  momentum: 0.20
+  drawdown_stress: 0.15
+
+scale_factor: 2            # multiply core_score to map [-2,+2] → [-4,+4]
+
+# ---------------------------------------------------------------------------
+# PANIC OVERRIDE → force -4
+# ---------------------------------------------------------------------------
+panic:
+  drop_threshold: -0.035   # VNINDEX 1-day drop ≤ -3.5%
+  breadth_threshold: -2    # breadth_score must be -2
+  vol_threshold: 3         # vol_regime_score must be ≥ 3
+
+# ---------------------------------------------------------------------------
+# BLOWOFF OVERRIDE → allow +4
+# ---------------------------------------------------------------------------
+blowoff:
+  require_trend: 2         # trend_structure = +2
+  require_breadth: 2       # breadth = +2
+  require_momentum: 2      # momentum = +2
+
+# ---------------------------------------------------------------------------
+# SMOOTHING
+# ---------------------------------------------------------------------------
+smoothing:
+  alpha: 0.30              # EMA alpha for regime smoothing
+  max_daily_change: 1.0    # max 1 unit change per day (except panic)
+
+# ---------------------------------------------------------------------------
+# VOLATILITY REGIME SCORE (0..4)
+# ---------------------------------------------------------------------------
+volatility:
+  atr_period: 14
+  lookback: 120            # percentile lookback window
+  percentile_bins: [20, 40, 65, 85]  # boundaries for scores 0/1/2/3/4
+
+# ---------------------------------------------------------------------------
+# LIQUIDITY REGIME SCORE (-2..+2)
+# ---------------------------------------------------------------------------
+liquidity:
+  volume_ma_period: 20
+  strong_expansion: 1.50   # volume/MA20 ≥ 1.5 → +2
+  mild_expansion: 1.15     # volume/MA20 ≥ 1.15 → +1
+  mild_contraction: 0.75   # volume/MA20 ≤ 0.75 → -1
+  severe_contraction: 0.50 # volume/MA20 ≤ 0.50 → -2
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngày T chỉ dùng data đến close T-1.
+# feature_builder tự enforce rule này.
