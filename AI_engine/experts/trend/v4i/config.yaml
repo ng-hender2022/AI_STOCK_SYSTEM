@@ -1,0 +1,73 @@
+# V4I — Ichimoku Expert Configuration
+# Expert ID: V4I
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4I
+expert_name: Ichimoku Expert
+group: TREND
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# ICHIMOKU PARAMETERS (classic settings)
+# ---------------------------------------------------------------------------
+ichimoku:
+  tenkan_period: 9
+  kijun_period: 26
+  senkou_b_period: 52
+  displacement: 26       # forward shift for Senkou, backward shift for Chikou
+
+# ---------------------------------------------------------------------------
+# SCORING WEIGHTS
+# ---------------------------------------------------------------------------
+scoring:
+  cloud_position:
+    above: 2             # price above cloud → +2
+    inside: 0            # price inside cloud → 0
+    below: -2            # price below cloud → -2
+
+  tk_signal:
+    tenkan_above: 1      # tenkan > kijun → +1
+    tenkan_below: -1     # tenkan < kijun → -1
+
+  chikou_confirm:
+    above_price_26: 1    # chikou > price 26 bars ago → +1
+    below_price_26: -1   # chikou < price 26 bars ago → -1
+
+  future_cloud_bonus:
+    bullish_aligned: 1   # bullish future cloud + strong alignment → +1
+    bearish_aligned: -1  # bearish future cloud + strong alignment → -1
+
+# ---------------------------------------------------------------------------
+# TIME THEORY
+# ---------------------------------------------------------------------------
+time_theory:
+  key_cycles: [9, 17, 26, 33, 42]   # primary cycle numbers
+  tolerance: 2                        # ±2 days tolerance for cycle detection
+  pivot_lookback: 65                  # days to look back for pivots
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY RULES
+# ---------------------------------------------------------------------------
+quality:
+  # Number of aligned components needed for each quality level
+  # Components: cloud_position, tk_signal, chikou_confirm, future_cloud
+  level_4: 4       # all 4 aligned → quality 4 (VERY_STRONG)
+  level_3: 3       # 3 aligned → quality 3 (STRONG)
+  level_2: 2       # 2 aligned → quality 2 (MODERATE)
+  level_1: 1       # 1 aligned → quality 1 (WEAK)
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 80   # need at least 80 days (52 + 26 displacement + buffer)
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngày T chỉ dùng data đến close T-1.
