@@ -1,0 +1,9 @@
+model_id: R0
+model_name: Baseline Logistic Regression
+model_type: classification
+default_horizon: 5
+hyperparams:
+  C: 1.0
+  max_iter: 500
+  class_weight: balanced
+  solver: lbfgs

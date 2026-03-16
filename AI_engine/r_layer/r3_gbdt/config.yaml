@@ -1,0 +1,12 @@
+model_id: R3
+model_name: Gradient Boosting (LightGBM)
+model_type: classification
+default_horizon: 5
+hyperparams:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.05
+  num_leaves: 31
+  min_child_samples: 20
+  class_weight: balanced
+  verbose: -1

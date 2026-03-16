@@ -1,0 +1,11 @@
+model_id: R2
+model_name: Random Forest
+model_type: classification
+default_horizon: 5
+hyperparams:
+  n_estimators: 200
+  max_depth: 10
+  min_samples_leaf: 20
+  class_weight: balanced
+  n_jobs: -1
+  random_state: 42

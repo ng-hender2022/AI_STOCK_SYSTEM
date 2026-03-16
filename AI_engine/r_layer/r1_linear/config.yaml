@@ -1,0 +1,9 @@
+model_id: R1
+model_name: Regularized Linear (ElasticNet)
+model_type: regression
+default_horizon: 5
+hyperparams:
+  alpha: 0.1
+  l1_ratio: 0.5
+  max_iter: 1000
+scale_factor: 200  # multiply predicted return to get -4..+4 range
