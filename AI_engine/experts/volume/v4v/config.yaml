@@ -1,0 +1,77 @@
+# V4V — Volume Behavior Expert Configuration
+# Expert ID: V4V
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4V
+expert_name: Volume Behavior Expert
+group: VOLUME
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# VOLUME PARAMETERS
+# ---------------------------------------------------------------------------
+vol_sma_period: 20
+vol_trend_short: 5
+vol_trend_long: 10
+
+# Thresholds
+surge_threshold: 2.0        # vol_ratio > 2x = surge
+above_avg_threshold: 1.2    # vol_ratio > 1.2x = above average
+below_avg_threshold: 0.8    # vol_ratio < 0.8x = below average
+climax_threshold: 3.0       # vol_ratio > 3x = climax
+drying_threshold: 0.5       # vol_ratio < 0.5x = drying up
+trend_expand: 1.3           # vol_trend_5 > 1.3 = expanding
+trend_contract: 0.7         # vol_trend_5 < 0.7 = contracting
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Volume-Price Confirmation (range: -2 to +2)
+  confirmation:
+    price_up_surge: 2.0
+    price_up_above_avg: 1.0
+    price_up_below_avg: -0.5
+    price_down_surge: -2.0
+    price_down_above_avg: -1.0
+    price_down_below_avg: 0.5
+
+  # Volume Trend (range: -1 to +1)
+  trend:
+    expanding: 1.0           # vol_trend_5 > 1.3
+    contracting: -1.0        # vol_trend_5 < 0.7
+    neutral: 0.0
+
+  # Divergence (range: -1 to +1)
+  divergence:
+    exhaustion: 1.0          # price falling + vol declining
+    weak_rally: -1.0         # price rising + vol declining
+    neutral: 0.0
+
+  # Total clamped to [-4, +4]
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  climax_reversal: 4
+  surge_direction: 3
+  above_avg_match: 2
+  mild: 1
+  normal: 0
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 25   # need 20 + buffer for SMA20
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.

@@ -1,0 +1,66 @@
+# V4OBV — On Balance Volume Expert Configuration
+# Expert ID: V4OBV
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4OBV
+expert_name: On Balance Volume Expert
+group: VOLUME
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# OBV PARAMETERS
+# ---------------------------------------------------------------------------
+obv_slope_window: 20       # days for linear regression slope
+divergence_lookback: 20    # bars for divergence detection (range 10-30)
+breakout_window: 52        # days for new high/low detection
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # OBV Trend Score (range: -2 to +2)
+  # Based on normalized OBV slope over 20 days
+  trend:
+    strong_threshold: 0.5  # > 0.5 std = strong trend
+
+  # OBV Divergence Score (range: -1 to +1)
+  # +1 bullish div, -1 bearish div, 0 no div
+  divergence:
+    bullish: 1
+    bearish: -1
+    none: 0
+
+  # OBV Breakout Score (range: -1 to +1)
+  # OBV new 52-day high/low before price
+  breakout:
+    new_high: 1
+    new_low: -1
+    none: 0
+
+  # Total clamped to [-4, +4]
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # 4: divergence + breakout
+  # 3: divergence alone or breakout alone
+  # 2: clear trend (abs(trend_score) >= 2)
+  # 1: weak trend (abs(trend_score) == 1)
+  # 0: flat or insufficient data
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 60   # need 52-day OBV history for breakout + buffer
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.

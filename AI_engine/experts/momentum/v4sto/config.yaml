@@ -1,0 +1,59 @@
+# V4STO -- Stochastic Oscillator Expert Configuration
+# Expert ID: V4STO
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4STO
+expert_name: Stochastic Expert
+group: MOMENTUM
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+# primary_score = Slow %K value (0 to 100)
+# secondary_score = sto_norm = (slow_k - 50) / 50 -> range -1 to +1
+scale_min: 0
+scale_max: 100
+
+# ---------------------------------------------------------------------------
+# STOCHASTIC PARAMETERS
+# ---------------------------------------------------------------------------
+fast_k_period: 14        # Fast %K lookback period
+fast_d_period: 3         # SMA period for Fast %D (= Slow %K)
+slow_d_period: 3         # SMA period for Slow %D
+slope_window: 3          # days for %K slope
+
+# ---------------------------------------------------------------------------
+# LEVELS
+# ---------------------------------------------------------------------------
+levels:
+  extreme_overbought: 90
+  overbought: 80
+  oversold: 20
+  extreme_oversold: 10
+
+# ---------------------------------------------------------------------------
+# DIVERGENCE
+# ---------------------------------------------------------------------------
+divergence:
+  lookback_min: 10
+  lookback_max: 30
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY (0 to 4)
+# ---------------------------------------------------------------------------
+# 4: divergence + %K/%D cross in OB/OS zone
+# 3: %K/%D cross in OB/OS zone (< 20 or > 80)
+# 2: %K/%D cross near OB/OS (20-30 or 70-80)
+# 1: OB/OS zone reached but no cross
+# 0: %K in neutral zone, no cross
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 20     # Stochastic(14,3,3) needs ~20 days with buffer
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.
