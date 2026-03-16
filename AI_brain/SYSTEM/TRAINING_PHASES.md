@@ -75,6 +75,20 @@ Phase 3 (FINE-TUNE → PRODUCTION)
 
 ---
 
+## LABEL HORIZONS
+
+| Horizon | Available From | Note |
+|---|---|---|
+| T+1 | All dates except last 1 trading day | 242,314 labels |
+| T+5 | All dates except last 5 trading days | 241,524 labels |
+| T+10 | All dates except last 10 trading days | 241,025 labels |
+| T+20 | All dates except last 20 trading days | 240,119 labels |
+| T+50 | All dates except last 50 trading days | 237,387 labels |
+
+T+50 labels require 50 trading days of future data. Last ~50 trading days in the calendar will have T+50 = NULL.
+
+---
+
 ## DATA LEAKAGE RULES
 
 - Phase TEST data NEVER used for training

@@ -23,7 +23,7 @@ except ImportError:
 LABEL_UP_THRESHOLD = 0.005      # +0.5%
 LABEL_DOWN_THRESHOLD = -0.005   # -0.5%
 
-HORIZONS = [1, 5, 10, 20]
+HORIZONS = [1, 5, 10, 20, 50]
 
 
 class LabelBuilder:
@@ -205,10 +205,19 @@ class LabelWriter:
                 t20_date        DATE,
                 t20_return      REAL,
                 t20_label       TEXT,
+                t50_date        DATE,
+                t50_return      REAL,
+                t50_label       TEXT,
                 created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (symbol, feature_date)
             )
         """)
+        # Migrate: add t50 columns if missing
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(training_labels)")}
+        for col in ["t50_date", "t50_return", "t50_label"]:
+            if col not in cols:
+                ctype = "DATE" if col.endswith("_date") else ("REAL" if col.endswith("_return") else "TEXT")
+                conn.execute(f"ALTER TABLE training_labels ADD COLUMN {col} {ctype}")
 
     def build_all(
         self,
@@ -230,7 +239,7 @@ class LabelWriter:
         if symbols is None:
             symbols = [
                 r[0] for r in mconn.execute(
-                    "SELECT symbol FROM symbols_master WHERE is_tradable = 1 ORDER BY symbol"
+                    "SELECT symbol FROM symbols_master ORDER BY symbol"
                 ).fetchall()
             ]
 
@@ -312,8 +321,9 @@ class LabelWriter:
                             t1_date, t1_return, t1_label,
                             t5_date, t5_return, t5_label,
                             t10_date, t10_return, t10_label,
-                            t20_date, t20_return, t20_label)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            t20_date, t20_return, t20_label,
+                            t50_date, t50_return, t50_label)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         batch,
                     )
                     batch = []
@@ -331,8 +341,9 @@ class LabelWriter:
                     t1_date, t1_return, t1_label,
                     t5_date, t5_return, t5_label,
                     t10_date, t10_return, t10_label,
-                    t20_date, t20_return, t20_label)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    t20_date, t20_return, t20_label,
+                    t50_date, t50_return, t50_label)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 batch,
             )
 
