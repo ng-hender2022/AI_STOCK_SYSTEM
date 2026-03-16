@@ -1,0 +1,111 @@
+"""
+V4LIQ Expert Writer
+Ghi output vao signals.db -> expert_signals.
+Doc universe tu MASTER_UNIVERSE.md.
+"""
+
+import json
+import re
+import sqlite3
+from pathlib import Path
+
+from .feature_builder import LiqFeatureBuilder
+from .signal_logic import LiqSignalLogic, LiqOutput
+
+MASTER_UNIVERSE_PATH = Path(r"D:\AI\AI_brain\SYSTEM\MASTER_UNIVERSE.md")
+
+
+def load_universe() -> list[str]:
+    text = MASTER_UNIVERSE_PATH.read_text(encoding="utf-8")
+    match = re.search(r"## DANH SACH DAY DU.*?```\s*\n(.*?)```", text, re.DOTALL)
+    if not match:
+        match = re.search(r"## DANH S.*?```\s*\n(.*?)```", text, re.DOTALL)
+    if not match:
+        raise RuntimeError(f"Cannot parse universe from {MASTER_UNIVERSE_PATH}")
+    raw = match.group(1)
+    return [s.strip() for s in raw.replace("\n", ",").split(",") if s.strip()]
+
+
+class LiqExpertWriter:
+    """
+    End-to-end V4LIQ pipeline.
+
+    Usage:
+        writer = LiqExpertWriter(market_db, signals_db)
+        output = writer.run_symbol("FPT", "2026-03-16")
+        results = writer.run_all("2026-03-16")
+    """
+
+    EXPERT_ID = "V4LIQ"
+
+    def __init__(self, market_db: str | Path, signals_db: str | Path):
+        self.market_db = str(market_db)
+        self.signals_db = str(signals_db)
+        self.feature_builder = LiqFeatureBuilder(market_db)
+        self.signal_logic = LiqSignalLogic()
+
+    def _connect_signals(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.signals_db, timeout=30)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
+    def _write_output(self, conn: sqlite3.Connection, output: LiqOutput, features) -> None:
+        metadata = {
+            "adtv_20d": round(float(features.adtv_20d), 6),
+            "adtv_60d": round(float(features.adtv_60d), 6),
+            "adtv_ratio": round(float(features.adtv_ratio), 6),
+            "volume_cv": round(float(features.volume_cv), 6),
+            "zero_volume_days": int(features.zero_volume_days),
+            "hl_spread_avg": round(float(features.hl_spread_avg), 6),
+            "adtv_sub": round(float(output.adtv_sub), 2),
+            "consistency_sub": round(float(output.consistency_sub), 2),
+            "spread_sub": round(float(output.spread_sub), 2),
+            "trend_sub": round(float(output.trend_sub), 2),
+            "liq_norm": round(float(output.liq_norm), 4),
+        }
+
+        conn.execute(
+            """INSERT OR REPLACE INTO expert_signals
+               (symbol, date, snapshot_time, expert_id,
+                primary_score, secondary_score,
+                signal_code, signal_quality, metadata_json)
+               VALUES (?, ?, 'EOD', ?, ?, ?, ?, ?, ?)""",
+            (
+                output.symbol, output.date, self.EXPERT_ID,
+                output.liq_score, output.liq_norm,
+                output.signal_code, output.signal_quality,
+                json.dumps(metadata),
+            ),
+        )
+
+    def run_symbol(self, symbol: str, target_date: str) -> LiqOutput:
+        features = self.feature_builder.build(symbol, target_date)
+        output = self.signal_logic.compute(features)
+        conn = self._connect_signals()
+        try:
+            if output.has_sufficient_data:
+                self._write_output(conn, output, features)
+            conn.commit()
+        finally:
+            conn.close()
+        return output
+
+    def run_all(
+        self, target_date: str, symbols: list[str] | None = None
+    ) -> list[LiqOutput]:
+        if symbols is None:
+            symbols = load_universe()
+        features_list = self.feature_builder.build_batch(symbols, target_date)
+        results = []
+        conn = self._connect_signals()
+        try:
+            for feat in features_list:
+                output = self.signal_logic.compute(feat)
+                if output.has_sufficient_data:
+                    self._write_output(conn, output, feat)
+                results.append(output)
+            conn.commit()
+        finally:
+            conn.close()
+        return results

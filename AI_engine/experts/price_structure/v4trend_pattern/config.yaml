@@ -1,0 +1,97 @@
+# V4TREND_PATTERN — Trend Pattern Expert Configuration
+# Expert ID: V4TREND_PATTERN (short: V4TP)
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4TREND_PATTERN
+expert_short_id: V4TP
+expert_name: Trend Pattern Expert
+group: PRICE_STRUCTURE
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# PATTERN DETECTION PARAMETERS
+# ---------------------------------------------------------------------------
+
+# Flag / Pennant detection
+flag_impulse_min_pct: 0.05          # 5% minimum impulse move
+flag_impulse_max_bars: 5            # impulse in <= 5 bars
+flag_consol_min_bars: 3             # consolidation 3-8 bars
+flag_consol_max_bars: 8
+flag_consol_range_max_ratio: 0.50   # consolidation range < 50% of impulse
+
+# Pennant detection (same impulse as flag)
+pennant_consol_min_bars: 5
+pennant_consol_max_bars: 15
+
+# Double top / bottom
+double_peak_tolerance_pct: 0.02     # peaks within 2% of each other
+double_min_bars_apart: 10           # minimum 10 bars between peaks
+
+# Triangle detection
+triangle_min_bars: 10
+triangle_max_bars: 40
+triangle_min_touches: 2             # min 2 touches on each boundary
+triangle_flat_tolerance_pct: 0.005  # 0.5% tolerance for flat boundary
+
+# Volume
+volume_breakout_ratio: 1.5          # breakout vol > 1.5x avg20
+
+# General
+swing_window: 2                     # bars before/after for swing detection
+pattern_min_bars: 5                 # ignore patterns < 5 bars
+pattern_max_bars: 60                # ignore patterns > 60 bars
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Pattern score (-2 to +2)
+  pattern:
+    bull_flag: 1.5
+    bear_flag: -1.5
+    bull_pennant: 1.5
+    bear_pennant: -1.5
+    double_bottom: 2.0
+    double_top: -2.0
+    triangle_asc: 1.5
+    triangle_desc: -1.5
+    no_pattern: 0.0
+
+  # Confirmation score (-1 to +1)
+  confirmation:
+    confirmed: 1.0
+    forming: 0.0
+    failure: -1.0
+
+  # Target score (-1 to +1)
+  target:
+    bullish_large: 1.0     # target > 5%
+    bearish_large: -1.0    # target < -5%
+    small: 0.0             # |target| <= 5%
+    target_threshold_pct: 0.05
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # 4 = Major reversal (double) + volume confirmed + breakout
+  # 3 = Continuation pattern + volume breakout
+  # 2 = Pattern detected + single close breakout
+  # 1 = Pattern forming, no breakout yet
+  # 0 = No pattern
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 50
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.

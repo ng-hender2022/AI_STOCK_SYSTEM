@@ -1,0 +1,98 @@
+# V4LIQ — Liquidity Expert Configuration
+# Expert ID: V4LIQ
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4LIQ
+expert_name: Liquidity Expert
+group: MARKET_CONTEXT
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# PERIODS
+# ---------------------------------------------------------------------------
+adtv_short_period: 20
+adtv_long_period: 60
+consistency_period: 20
+spread_period: 20
+volume_sma5_period: 5
+
+# ---------------------------------------------------------------------------
+# ADTV TIER THRESHOLDS (billion VND)
+# ---------------------------------------------------------------------------
+adtv_tiers:
+  - { min: 50.0,  score: 4 }    # MEGA_LIQUID
+  - { min: 20.0,  score: 3 }    # HIGH_LIQUID
+  - { min: 10.0,  score: 2 }    # GOOD_LIQUID
+  - { min: 5.0,   score: 1 }    # MODERATE_LIQUID
+  - { min: 2.0,   score: 0 }    # LOW_LIQUID
+  - { min: 1.0,   score: -1 }   # VERY_LOW_LIQUID
+  - { min: 0.5,   score: -2 }   # ILLIQUID
+  - { min: 0.1,   score: -3 }   # VERY_ILLIQUID
+  # below 0.1 -> -4 (UNTRADEABLE)
+
+# ---------------------------------------------------------------------------
+# SPREAD PROXY THRESHOLDS (HL_Spread_20d_Avg in %)
+# ---------------------------------------------------------------------------
+spread_tiers:
+  - { max: 1.0,   score: 4 }
+  - { max: 1.5,   score: 2 }
+  - { max: 2.5,   score: 1 }
+  - { max: 3.5,   score: 0 }
+  - { max: 5.0,   score: -1 }
+  - { max: 7.0,   score: -2 }
+  - { max: 10.0,  score: -3 }
+  # above 10% -> -4
+
+# ---------------------------------------------------------------------------
+# WEIGHTS
+# ---------------------------------------------------------------------------
+weights:
+  adtv: 0.40
+  consistency: 0.20
+  spread: 0.20
+  trend: 0.20
+
+# ---------------------------------------------------------------------------
+# OVERRIDES
+# ---------------------------------------------------------------------------
+untradeable_threshold: 0.1    # ADTV_20d < 0.1B => force -4
+zero_vol_force_neg4: 15       # Zero volume days >= 15 out of 20 => force -4
+
+# ---------------------------------------------------------------------------
+# VOLUME CONSISTENCY THRESHOLDS
+# ---------------------------------------------------------------------------
+zero_volume_threshold: 100     # shares < 100 = zero volume day
+value_1b_threshold: 1.0        # 1 billion VND for pct_days_above_1b
+
+# ---------------------------------------------------------------------------
+# LIQUIDITY TREND THRESHOLDS
+# ---------------------------------------------------------------------------
+volume_breakout_threshold: 3.0  # Today_vs_Avg > 3.0
+volume_drought_threshold: 0.3   # Today_vs_Avg < 0.3
+breakout_lookback_days: 5
+drought_lookback_days: 3
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  high:
+    min_adtv: 10.0
+    max_cv: 0.7
+    max_zero_days: 0
+  medium:
+    min_adtv: 2.0
+    max_cv: 1.0
+    max_zero_days: 3
+  # below medium -> low; below untradeable -> reject
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 65   # need 60 + buffer for ADTV_60d

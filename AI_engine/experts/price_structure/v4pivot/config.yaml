@@ -1,0 +1,69 @@
+# V4PIVOT — Pivot Point Expert Configuration
+# Expert ID: V4PIVOT
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4PIVOT
+expert_name: Pivot Point Expert
+group: PRICE_STRUCTURE
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Position score (-2 to +2): where close sits relative to pivot levels
+  position:
+    above_r2: 2
+    r1_to_r2: 1.5
+    p_to_r1: 1
+    at_pivot: 0
+    s1_to_p: -1
+    s2_to_s1: -1.5
+    below_s2: -2
+
+  # Confluence score (-1 to +1): multi-timeframe agreement
+  confluence:
+    all_bullish: 1        # daily + weekly + monthly all bullish
+    two_bullish: 0.5      # 2 of 3 bullish
+    mixed: 0              # no agreement
+    two_bearish: -0.5     # 2 of 3 bearish
+    all_bearish: -1       # daily + weekly + monthly all bearish
+
+  # Alignment score (-1 to +1): pivot trend direction
+  alignment:
+    all_rising: 1         # daily P rising + weekly P rising + monthly P rising
+    all_falling: -1       # daily P falling + weekly P falling + monthly P falling
+    mixed: 0
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # 4 = 3-timeframe confluence + close beyond R2/S2
+  # 3 = 2-timeframe confluence + close beyond R1/S1
+  # 2 = single timeframe signal + clear direction
+  # 1 = close near pivot, no confluence
+  # 0 = insufficient data
+
+# ---------------------------------------------------------------------------
+# NEUTRAL ZONE
+# ---------------------------------------------------------------------------
+neutral_pct: 0.002       # within 0.2% of pivot = neutral
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 35     # need ~1 month for monthly pivot
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.
+# Weekly pivot: last completed week only.
+# Monthly pivot: last completed month only.

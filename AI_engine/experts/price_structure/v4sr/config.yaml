@@ -1,0 +1,81 @@
+# V4SR — Support/Resistance Expert Configuration
+# Expert ID: V4SR
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4SR
+expert_name: Support/Resistance Expert
+group: PRICE_STRUCTURE
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# SWING DETECTION PARAMETERS
+# ---------------------------------------------------------------------------
+swing_window: 3          # N bars each side for swing detection
+swing_window_strong: 5   # N bars each side for strong swings
+lookback_days: 120       # scan back 120 trading days for levels
+
+# ---------------------------------------------------------------------------
+# SR ZONE PARAMETERS
+# ---------------------------------------------------------------------------
+atr_period: 14           # ATR period for zone width
+zone_multiplier: 0.5     # zone_width = ATR * zone_multiplier
+merge_threshold_atr: 1.0 # merge zones within 1 ATR of each other
+
+# ---------------------------------------------------------------------------
+# ZONE STRENGTH PARAMETERS
+# ---------------------------------------------------------------------------
+decay_period: 120        # days for age decay
+min_age_factor: 0.3      # floor for age factor
+max_volume_factor: 2.0   # cap for volume factor
+strength_divisor: 5.0    # used in strength_score = zone_strength / divisor
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Position score (-2 to +2)
+  position:
+    at_strong_support: 2        # within zone, strength >= 3
+    near_support: 1             # within 1 ATR, strength >= 2
+    at_strong_resistance: -2    # within zone, strength >= 3
+    near_resistance: -1         # within 1 ATR, strength >= 2
+    breakout_above_resistance: 2
+    breakdown_below_support: -2
+    between_levels: 0
+
+  # Strength score (-1 to +1)
+  strength:
+    max_bull: 1.0
+    max_bear: -1.0
+
+  # Context score (-1 to +1)
+  context:
+    bull_bounce: 1.0
+    bear_reject: -1.0
+    neutral: 0.0
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # 4 = strong zone (3+ touches) + volume + breakout/bounce
+  # 3 = strong zone + clear reaction
+  # 2 = moderate zone (2 touches) or near level
+  # 1 = weak zone (1 touch) or far from levels
+  # 0 = no identifiable SR nearby
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 140    # 120 lookback + buffer for ATR + swing detection
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Day T only uses data with date < target_date (up to close of T-1).
