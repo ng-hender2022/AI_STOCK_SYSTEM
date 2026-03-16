@@ -21,7 +21,22 @@ Each row = 1 symbol x 1 date. Columns = all expert features.
 | V4I (Ichimoku) | 14 | BUILT |
 | V4MA (Moving Average) | 23 | BUILT |
 | V4ADX — V4LIQ (14 experts) | TBD | NOT STARTED |
+| V4PIVOT (Pivot Point) | 9 | NOT STARTED |
+| V4SR (Support/Resistance) | 11 | NOT STARTED |
+| V4TREND_PATTERN (Trend Pattern) | 11 | NOT STARTED |
 | **Total (built)** | **47** | |
+| **Total (planned, all 20 experts)** | **78+** | |
+
+## R LAYER INPUT: NORMALIZED FEATURE VECTOR
+
+For R Layer, each expert produces a **norm score** (-1..+1):
+
+| Component | Count | Description |
+|---|---|---|
+| Expert norm scores | 20 | 1 per expert: {expert}_norm = score / 4 |
+| Meta features | 11 | Group scores, alignment, conflict, regime |
+| Regime scores | 3 | trend_regime, vol_regime, liquidity_regime |
+| **Total R Layer input** | **34** | |
 
 ---
 
@@ -75,7 +90,34 @@ v4ma_golden_cross               INTEGER
 v4ma_death_cross                INTEGER
 v4ma_signal_quality             INTEGER
 
--- (future experts will add more columns here)
+-- V4PIVOT features (per-symbol)
+v4pivot_pivot_score             REAL
+v4pivot_pivot_norm              REAL
+v4pivot_position_score          REAL
+v4pivot_confluence_score        REAL
+v4pivot_alignment_score         REAL
+v4pivot_signal_quality          INTEGER
+
+-- V4SR features (per-symbol)
+v4sr_sr_score                   REAL
+v4sr_sr_norm                    REAL
+v4sr_position_score             REAL
+v4sr_strength_score             REAL
+v4sr_dist_nearest_support       REAL
+v4sr_dist_nearest_resistance    REAL
+v4sr_signal_quality             INTEGER
+
+-- V4TREND_PATTERN features (per-symbol)
+v4tp_pattern_score              REAL
+v4tp_pattern_norm               REAL
+v4tp_confirmation_score         REAL
+v4tp_target_score               REAL
+v4tp_target_distance_pct        REAL
+v4tp_breakout_volume_ratio      REAL
+v4tp_pattern_failure            INTEGER
+v4tp_signal_quality             INTEGER
+
+-- (remaining 14 experts will add columns when built)
 ```
 
 ---

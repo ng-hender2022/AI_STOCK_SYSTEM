@@ -33,7 +33,7 @@ D:\AI\
 │   ├── models.db
 │   └── audit.db
 ├── AI_engine\              ← All AI components
-│   ├── experts\            ← 17 Expert modules
+│   ├── experts\            ← 20 Expert modules
 │   ├── r_layer\            ← R1~R5 models
 │   └── x1\                 ← Decision engine
 └── README.md
@@ -105,7 +105,7 @@ r_model_reliability     ← performance tracking từng R model
 - Mỗi expert output score theo **scale riêng của rulebook**
 - Experts KHÔNG output probability, KHÔNG output buy/sell advice
 
-### 5.2 Danh sách 17 Experts
+### 5.2 Danh sách 20 Experts
 
 #### TREND GROUP
 | ID | Tên | Rulebook | Scale output |
@@ -152,6 +152,13 @@ r_model_reliability     ← performance tracking từng R model
 | V4S | Sector Strength Expert | SECTOR_RULEBOOK | -4 → +4 |
 | V4LIQ | Liquidity Expert | LIQUIDITY_RULEBOOK | -4 → +4 |
 
+#### SUPPORT / RESISTANCE GROUP
+| ID | Tên | Rulebook | Scale output |
+|---|---|---|---|
+| V4PIVOT | Pivot Point Expert | V4PIVOT_RULEBOOK | -4 → +4 |
+| V4SR | Support/Resistance Expert | V4SR_RULEBOOK | -4 → +4 |
+| V4TREND_PATTERN | Trend Pattern Expert | V4TREND_PATTERN_RULEBOOK | -4 → +4 |
+
 ### 5.3 Expert Output Schema (signals.db → expert_signals)
 
 ```
@@ -174,7 +181,7 @@ symbol                  TEXT
 date                    DATE
 snapshot_time           TEXT
 
--- Aggregated từ toàn bộ 17 experts
+-- Aggregated từ toàn bộ 20 experts
 bullish_expert_count    INTEGER     ← số experts có score > 0
 bearish_expert_count    INTEGER     ← số experts có score < 0
 neutral_expert_count    INTEGER
@@ -274,7 +281,7 @@ vnstock API
     ↓
 market.db (prices_daily, prices_intraday)
     ↓
-17 Experts (đọc market.db)
+20 Experts (đọc market.db)
     ↓
 signals.db (expert_signals, meta_features, expert_conflicts)
     ↓
@@ -298,7 +305,7 @@ models.db + market.db → audit.db
 - [ ] AI_brain folder structure
 - [ ] AI_data folder + DB schema initialization
 - [ ] AI_engine folder skeleton
-- [ ] Rulebooks cho 17 experts
+- [x] Rulebooks cho 20 experts
 
 ### Phase 2 — Expert Layer
 - [ ] V4REG (Market Regime) — build trước, các expert khác cần
@@ -308,6 +315,7 @@ models.db + market.db → audit.db
 - [ ] Volatility group: V4ATR, V4BB
 - [ ] Price Structure group: V4P, V4CANDLE
 - [ ] Market Context group: V4BR, V4RS, V4S, V4LIQ
+- [ ] S/R group: V4PIVOT, V4SR, V4TREND_PATTERN
 - [ ] Meta Feature builder
 - [ ] Conflict detector
 

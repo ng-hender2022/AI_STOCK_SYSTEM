@@ -6,7 +6,7 @@ Status: ACTIVE
 
 ---
 
-## CORE 17 EXPERTS
+## CORE 20 EXPERTS
 
 | Expert ID | Name | Scale | Rulebooks (KNOWLEDGE/) | Build Status |
 |---|---|---|---|---|
@@ -27,11 +27,6 @@ Status: ACTIVE
 | V4REG | Market Regime Expert | -4..+4 | `REGIME_RULEBOOK.md` | BUILT |
 | V4S | Sector Strength Expert | -4..+4 | `SECTOR_RULEBOOK.md` | RULEBOOK READY |
 | V4LIQ | Liquidity Expert | -4..+4 | `LIQUIDITY_RULEBOOK.md` | RULEBOOK READY |
-
-## FUTURE EXPERTS (rulebooks ready, not in core 17 yet)
-
-| Expert ID | Name | Scale | Rulebooks (KNOWLEDGE/) | Build Status |
-|---|---|---|---|---|
 | V4PIVOT | Pivot Point Expert | -4..+4 | `V4PIVOT_RULEBOOK.md` | RULEBOOK READY |
 | V4SR | Support/Resistance Expert | -4..+4 | `V4SR_RULEBOOK.md` | RULEBOOK READY |
 | V4TREND_PATTERN | Trend Pattern Expert | -4..+4 | `V4TREND_PATTERN_RULEBOOK.md` | RULEBOOK READY |
@@ -51,7 +46,7 @@ Status: ACTIVE
 | Status | Count | Experts |
 |---|---|---|
 | BUILT | 3 | V4REG, V4I, V4MA |
-| RULEBOOK READY | 14 + 3 | V4ADX, V4MACD, V4RSI, V4STO, V4V, V4OBV, V4ATR, V4BB, V4P, V4CANDLE, V4BR, V4RS, V4S, V4LIQ + V4PIVOT, V4SR, V4TREND_PATTERN |
+| RULEBOOK READY | 17 | V4ADX, V4MACD, V4RSI, V4STO, V4V, V4OBV, V4ATR, V4BB, V4P, V4CANDLE, V4BR, V4RS, V4S, V4LIQ, V4PIVOT, V4SR, V4TREND_PATTERN |
 
 ---
 

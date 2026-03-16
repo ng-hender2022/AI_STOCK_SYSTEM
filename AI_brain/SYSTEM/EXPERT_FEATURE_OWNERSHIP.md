@@ -87,6 +87,64 @@ R Layer and Meta Layer use this to know which expert produces which features.
 
 ---
 
+## V4PIVOT — Pivot Point Expert
+
+| Feature | Type | Range |
+|---|---|---|
+| pivot_score | float | -4..+4 |
+| pivot_norm | float | -1..+1 |
+| position_score | float | -2..+2 |
+| confluence_score | float | -1..+1 |
+| alignment_score | float | -1..+1 |
+| daily_pivot | float | price level |
+| weekly_pivot | float | price level |
+| monthly_pivot | float | price level |
+| signal_quality | int | 0..4 |
+
+**Total: 9 features**
+
+---
+
+## V4SR — Support/Resistance Expert
+
+| Feature | Type | Range |
+|---|---|---|
+| sr_score | float | -4..+4 |
+| sr_norm | float | -1..+1 |
+| position_score | float | -2..+2 |
+| strength_score | float | -1..+1 |
+| context_score | float | -1..+1 |
+| dist_nearest_support | float | ratio |
+| dist_nearest_resistance | float | ratio |
+| nearest_support_strength | float | 0..10 |
+| nearest_resistance_strength | float | 0..10 |
+| polarity_active | int | 0/1 |
+| signal_quality | int | 0..4 |
+
+**Total: 11 features**
+
+---
+
+## V4TREND_PATTERN — Trend Pattern Expert
+
+| Feature | Type | Range |
+|---|---|---|
+| pattern_score | float | -4..+4 |
+| pattern_norm | float | -1..+1 |
+| pattern_type | str | flag/pennant/triangle/hs/double/rounding/none |
+| pattern_direction | str | bullish/bearish/neutral |
+| confirmation_score | float | -1..+1 |
+| target_score | float | -1..+1 |
+| target_distance_pct | float | ratio |
+| pattern_duration | int | bars |
+| breakout_volume_ratio | float | ratio |
+| pattern_failure | int | 0/1 |
+| signal_quality | int | 0..4 |
+
+**Total: 11 features**
+
+---
+
 ## SUMMARY
 
 | Expert | Feature Count | Status |
@@ -108,8 +166,12 @@ R Layer and Meta Layer use this to know which expert produces which features.
 | V4RS | — | NOT STARTED |
 | V4S | — | NOT STARTED |
 | V4LIQ | — | NOT STARTED |
+| V4PIVOT | 9 | NOT STARTED |
+| V4SR | 11 | NOT STARTED |
+| V4TREND_PATTERN | 11 | NOT STARTED |
 
 **Total features (built): 47**
+**Total features (planned): 78**
 
 ---
 
