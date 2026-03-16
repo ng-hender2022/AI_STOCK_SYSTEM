@@ -41,12 +41,35 @@ def _create_test_dbs(tmp_path):
             volatility_score REAL, trend_score REAL, liquidity_score REAL,
             PRIMARY KEY (date, snapshot_time)
         );
+        CREATE TABLE prices_daily (
+            symbol TEXT NOT NULL, date DATE NOT NULL,
+            open REAL, high REAL, low REAL, close REAL,
+            volume INTEGER, value REAL,
+            PRIMARY KEY (symbol, date)
+        );
     """)
     # Add symbols
     for sym in ["FPT", "VNM", "HPG", "TCB", "VCB", "ACB", "MBB", "SSI", "MWG",
                  "REE", "DPM", "GAS", "PNJ", "VIC", "VHM", "HDB"]:
         mconn.execute("INSERT INTO symbols_master (symbol, name, is_tradable, added_date, is_index) VALUES (?,?,1,'2020-01-01',0)", (sym, sym))
     mconn.execute("INSERT INTO symbols_master (symbol, name, is_tradable, added_date, is_index) VALUES ('VNINDEX','VN Index',0,'2020-01-01',1)")
+
+    # Add price data for symbol evaluator (30 days before test dates)
+    import numpy as np
+    from datetime import date, timedelta
+    np.random.seed(42)
+    for sym in ["FPT", "VNM", "HPG", "TCB", "VNINDEX"]:
+        price = 100.0
+        for i in range(60):
+            d = date(2024, 11, 1) + timedelta(days=i)
+            if d.weekday() >= 5:
+                continue
+            price *= 1 + np.random.normal(0.001, 0.015)
+            mconn.execute(
+                "INSERT OR IGNORE INTO prices_daily (symbol,date,open,high,low,close,volume) VALUES (?,?,?,?,?,?,?)",
+                (sym, d.isoformat(), round(price*0.99,2), round(price*1.01,2),
+                 round(price*0.98,2), round(price,2), 1000000),
+            )
 
     # Normal regime
     mconn.execute("INSERT INTO market_regime VALUES ('2025-01-15','EOD',1.5,'BULL',1.0,1.5,1.0,0.5)")
@@ -92,7 +115,8 @@ def _create_test_dbs(tmp_path):
     # Bull regime (2025-03-15, regime=2.5): sell in bull should be blocked unless very strong
     conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-03-15','EOD',2.0,2.5,2.0,3.0,2.0,2.5,2.5,0.85,1,2.3,1,2.3)")
     # Weak sell in bull regime (score=-2.5, but regime=2.5 requires -3.5) -> should HOLD
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('HPG','2025-03-15','EOD',-2.0,-3.0,-2.0,-2.5,-1.0,-2.0,-2.5,0.7,-1,-2.0,-1,2.0)")
+    # HPG in bull: score=-2.0, but only 3 bearish models (r0,r1,r3) -> blocked (need 5 in bull)
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('HPG','2025-03-15','EOD',-1.0,-2.0,-0.3,-1.5,-0.2,0.1,-2.0,0.7,-1,-2.0,-1,2.0)")
     # Strong sell in bull regime (score=-3.5, 5 models bearish) -> should SELL
     conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('VNM','2025-03-15','EOD',-3.5,-4.0,-3.0,-3.5,-3.0,-3.5,-3.5,0.9,-1,-3.4,-1,3.4)")
 

@@ -1,119 +1,108 @@
 # TRAINING PHASES — AI_STOCK
 
-Version: 3.0
+Version: 5.0
 Date: 2026-03-16
 Source: TRADING_CALENDAR_MASTER.csv
 Status: ACTIVE
 
 ---
 
-## PHASE DEFINITIONS
+## PHASE DEFINITIONS (by year)
 
-| Phase | Name | Start | End | Trading Days | Role |
-|---|---|---|---|---|---|
-| Phase TEST | First Validation | 2014-03-06 | 2014-07-29 | 100 | TEST |
-| Phase 1 | NEN (Foundation) | 2014-07-30 | 2016-12-30 | 608 | TRAIN |
-| Phase 2 | TANG TRUONG (Growth) | 2017-01-03 | 2019-12-31 | 748 | FINE-TUNE |
-| Phase 3 | HIEN DAI (Modern) | 2020-01-02 | 2026-03-13 | 1544 | FINE-TUNE → PRODUCTION |
-| **Total** | | **2014-03-06** | **2026-03-13** | **3000** | |
+| Phase | Start | End | Trading Days | Role |
+|---|---|---|---|---|
+| Phase TEST | 2014-03-06 | 2014-07-29 | 100 | TEST |
+| Phase 2014 | 2014-07-30 | 2014-12-31 | 109 | TRAIN |
+| Phase 2015 | 2015-01-05 | 2015-12-31 | 248 | TRAIN |
+| Phase 2016 | 2016-01-04 | 2016-12-30 | 251 | TRAIN |
+| Phase 2017 | 2017-01-03 | 2017-12-29 | 250 | FINE-TUNE |
+| Phase 2018 | 2018-01-02 | 2018-12-28 | 248 | FINE-TUNE |
+| Phase 2019 | 2019-01-02 | 2019-12-31 | 250 | FINE-TUNE |
+| Phase 2020 | 2020-01-02 | 2020-12-31 | 252 | FINE-TUNE |
+| Phase 2021 | 2021-01-04 | 2021-12-31 | 250 | FINE-TUNE |
+| Phase 2022 | 2022-01-04 | 2022-12-30 | 249 | FINE-TUNE |
+| Phase 2023 | 2023-01-03 | 2023-12-29 | 249 | FINE-TUNE |
+| Phase 2024 | 2024-01-02 | 2024-12-31 | 250 | FINE-TUNE |
+| Phase 2025 | 2025-01-02 | 2025-12-31 | 249 | PRODUCTION |
+| Phase 2026 | 2026-01-05 | 2026-03-13 | 45 | PRODUCTION |
+| **Total** | **2014-03-06** | **2026-03-13** | **3000** | |
 
 ---
 
-## PHASE DETAILS
+## GROUPED PHASES
 
-### Phase TEST — First Validation (100 days) — TEST
-- Start: 2014-03-06 (first trading day in calendar)
-- End: 2014-07-29 (100th trading day)
-- Duration: 100 trading days (~5 months)
-- Role: **Held-out test set** — verify expert signals and data pipeline before training
-- Market context: VNINDEX sideways ~560-590
-- NEVER used for training or fine-tuning
+| Group | Years | Trading Days | Role |
+|---|---|---|---|
+| Phase TEST | 2014 H1 | 100 | Held-out validation |
+| Phase 1 NEN | 2014 H2 + 2015 + 2016 | 608 | Initial training |
+| Phase 2 TANG TRUONG | 2017 + 2018 + 2019 | 748 | Fine-tune / OOS validation |
+| Phase 3 HIEN DAI | 2020 - 2026 | 1544 | Fine-tune to production |
 
-### Phase 1 — NEN / Foundation (608 days) — TRAIN
-- Start: 2014-07-30 (day after Phase TEST ends)
-- End: 2016-12-30 (last trading day of 2016)
-- Duration: 608 trading days (~2.4 years)
-- Role: **Initial training** — R Layer learns baseline patterns
-- Market context: 2014 recovery, 2015 sideways, 2016 gradual bull
-- VNINDEX range: ~590 → ~680
+---
 
-### Phase 2 — TANG TRUONG / Growth (748 days) — FINE-TUNE
-- Start: 2017-01-03 (first trading day of 2017)
-- End: 2019-12-31 (last trading day of 2019)
-- Duration: 748 trading days (~3.0 years)
-- Role: **Fine-tune** — R Layer adapts to growth/correction cycles
-- Market context: 2017 bull acceleration, 2018 peak + correction, 2019 recovery
-- VNINDEX range: ~680 → ~960 (peak ~1200 in Apr 2018)
+## MARKET CONTEXT BY YEAR
 
-### Phase 3 — HIEN DAI / Modern (1544 days) — FINE-TUNE → PRODUCTION
-- Start: 2020-01-02 (first trading day of 2020)
-- End: 2026-03-13 (last trading day in calendar)
-- Duration: 1544 trading days (~6.2 years)
-- Role: **Fine-tune then production** — includes modern market regimes
-- Market context: COVID crash 2020, 2020-2021 super bull, 2022 crash, 2023-2026 recovery
-- VNINDEX range: ~960 → ~1280 (peak ~1528 in Jan 2022, trough ~874 in Nov 2022)
+| Year | VNINDEX Range | Context |
+|---|---|---|
+| 2014 | ~560 - 640 | Recovery, sideways |
+| 2015 | ~540 - 640 | Sideways, consolidation |
+| 2016 | ~560 - 690 | Gradual bull |
+| 2017 | ~680 - 990 | Bull acceleration |
+| 2018 | ~890 - 1200 | Peak Apr 1200, sharp correction |
+| 2019 | ~900 - 1020 | Recovery, range-bound |
+| 2020 | ~660 - 1100 | COVID crash Mar, V-recovery |
+| 2021 | ~1070 - 1528 | Super bull, peak Jan 2022 |
+| 2022 | ~874 - 1528 | Crash Nov 874, margin cascade |
+| 2023 | ~1000 - 1260 | Recovery |
+| 2024 | ~1170 - 1300 | Consolidation |
+| 2025 | ~1200 - 1770 | Bull expansion |
+| 2026 | ~1280 - 1350 | Current |
+
+---
+
+## LABEL HORIZONS
+
+| Horizon | Labels | Note |
+|---|---|---|
+| T+1 | 245,313 | All except last 1 day |
+| T+5 | 244,519 | |
+| T+10 | 244,015 | |
+| T+20 | 243,099 | |
+| T+50 | 240,337 | Last ~50 days = NULL |
 
 ---
 
 ## TRAINING PIPELINE
 
 ```
-Phase TEST (TEST)
-    ↓ verify experts + data pipeline on 100 days
-    ↓ sanity check passed:
-Phase 1 (TRAIN)
-    ↓ train R0-R5 on 608 days
-    ↓ validate with TimeSeriesSplit within Phase 1
-Phase 2 (FINE-TUNE)
-    ↓ fine-tune R0-R5 on Phase 1 + Phase 2 data
-    ↓ validate on last 100 days of Phase 2
-Phase 3 (FINE-TUNE → PRODUCTION)
-    ↓ fine-tune on Phase 1 + 2 + early Phase 3
-    ↓ walk-forward: retrain periodically, test on next window
-    ↓ production: live predictions
+Phase TEST (100 days)
+    verify experts + data pipeline
+
+Phase 2014-2016 (TRAIN, 608 days)
+    train R0-R5 initial models
+    validate with TimeSeriesSplit
+
+Phase 2017-2019 (FINE-TUNE, 748 days)
+    expanding window: train on 2014-2016, validate on 2017
+    retrain yearly: add 2017 data, validate on 2018, etc.
+    OOS evaluation on each year
+
+Phase 2020-2026 (PRODUCTION, 1544 days)
+    walk-forward: retrain quarterly/yearly
+    live predictions
 ```
-
----
-
-## LABEL HORIZONS
-
-| Horizon | Available From | Note |
-|---|---|---|
-| T+1 | All dates except last 1 trading day | 242,314 labels |
-| T+5 | All dates except last 5 trading days | 241,524 labels |
-| T+10 | All dates except last 10 trading days | 241,025 labels |
-| T+20 | All dates except last 20 trading days | 240,119 labels |
-| T+50 | All dates except last 50 trading days | 237,387 labels |
-
-T+50 labels require 50 trading days of future data. Last ~50 trading days in the calendar will have T+50 = NULL.
 
 ---
 
 ## DATA LEAKAGE RULES
 
-- Phase TEST data NEVER used for training
-- Phase 1 training NEVER sees Phase 2 or Phase 3 data
-- Phase 2 fine-tuning NEVER sees Phase 3 data
-- Within each phase: use TimeSeriesSplit (chronological only)
-- Walk-forward in Phase 3: expanding train window, fixed test window
+- Phase TEST NEVER used for training
+- Each year trains on all prior years (expanding window)
+- TimeSeriesSplit within each training window
+- Never peek at future data
 - See: DATA_LEAKAGE_PREVENTION.md
 
 ---
 
-## KEY DATES
-
-| Event | Date | Phase |
-|---|---|---|
-| Calendar start | 2014-03-06 | Phase TEST start |
-| Phase TEST end | 2014-07-29 | 100th trading day |
-| Phase 1 start | 2014-07-30 | Day after TEST |
-| Phase 1 end | 2016-12-30 | Last trading day 2016 |
-| Phase 2 start | 2017-01-03 | First trading day 2017 |
-| Phase 2 end | 2019-12-31 | Last trading day 2019 |
-| Phase 3 start | 2020-01-02 | First trading day 2020 |
-| Calendar end | 2026-03-13 | Phase 3 end |
-
----
-
 *All dates verified from TRADING_CALENDAR_MASTER.csv.*
-*Total: 3000 trading days across 4 phases (100 + 608 + 748 + 1544).*
+*Total: 3000 trading days, 14 phases (TEST + 13 years).*
