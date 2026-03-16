@@ -1,3 +1,10 @@
 book/
 __pycache__/
 *.pyc
+*.db
+*.db-shm
+*.db-wal
+AI_data/backups/
+AI_data/plans/
+AI_data/raw/
+*.pkl
