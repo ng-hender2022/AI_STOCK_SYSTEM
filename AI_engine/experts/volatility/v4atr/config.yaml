@@ -1,0 +1,68 @@
+# V4ATR — ATR Volatility Expert Configuration
+# Expert ID: V4ATR
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4ATR
+expert_name: ATR Volatility Expert
+group: VOLATILITY
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: 0
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# ATR PARAMETERS
+# ---------------------------------------------------------------------------
+atr_period: 14              # Wilder standard
+atr_pct_lookback: 120       # days for percentile calculation
+atr_sma_period: 50          # SMA period for atr_ratio
+atr_change_window: 5        # days for atr_change_5d
+
+# ---------------------------------------------------------------------------
+# SCORING (percentile-based, direction-neutral)
+# ---------------------------------------------------------------------------
+scoring:
+  # ATR_pct percentile within 120-day lookback -> atr_score
+  percentile_bins:
+    very_low: 20       # 0-20th percentile  -> score 0 (VERY_LOW_VOL)
+    low: 40            # 20-40th            -> score 1 (LOW_VOL)
+    normal: 65         # 40-65th            -> score 2 (NORMAL_VOL)
+    high: 85           # 65-85th            -> score 3 (HIGH_VOL)
+    extreme: 100       # 85-100th           -> score 4 (EXTREME_VOL)
+
+# ---------------------------------------------------------------------------
+# EXPANSION / CONTRACTION THRESHOLDS
+# ---------------------------------------------------------------------------
+expanding_threshold: 0.10    # atr_change_5d > +10% = expanding
+contracting_threshold: -0.10 # atr_change_5d < -10% = contracting
+
+# ---------------------------------------------------------------------------
+# VOLATILITY REGIME THRESHOLDS
+# ---------------------------------------------------------------------------
+regime:
+  squeeze_percentile: 15     # percentile < 15 AND contracting -> SQUEEZE
+  expansion_percentile: 80   # percentile > 80 AND expanding  -> EXPANSION
+  climax_percentile: 95      # percentile > 95 -> CLIMAX
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  extreme_setup: 4           # Extreme ATR with clear setup
+  percentile_extreme: 3      # ATR at percentile extremes (>90 or <10)
+  noticeable_change: 2       # Noticeable expansion/contraction
+  slightly_outside: 1        # Slightly outside normal
+  normal: 0                  # Normal range
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 140        # 120 lookback + 14 ATR warmup + buffer
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Day T only uses data with date < T (strictly before target_date).

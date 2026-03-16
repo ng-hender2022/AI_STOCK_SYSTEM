@@ -1,0 +1,83 @@
+# V4BB — Bollinger Bands Expert Configuration
+# Expert ID: V4BB
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4BB
+expert_name: Bollinger Bands Expert
+group: VOLATILITY
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# BOLLINGER BAND PARAMETERS
+# ---------------------------------------------------------------------------
+bb_period: 20
+bb_std_mult: 2.0
+
+# Bandwidth percentile lookback (days)
+bandwidth_pctile_lookback: 120
+
+# Squeeze threshold: bandwidth percentile below this = squeeze active
+squeeze_pctile_threshold: 10
+
+# Band walk: number of consecutive bars near band
+band_walk_bars: 3
+
+# Band walk proximity: close within this fraction of band range from the band
+band_walk_proximity: 0.1
+
+# Reversal pattern lookback (bars to search for W-bottom / M-top)
+reversal_lookback: 20
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Position score (range: -2 to +2)
+  position:
+    above_upper: 2.0       # %B > 1.0
+    upper_half: 1.0        # 0.5 < %B <= 1.0
+    middle: 0.0            # 0.4 <= %B <= 0.6
+    lower_half: -1.0       # 0.0 <= %B < 0.5
+    below_lower: -2.0      # %B < 0.0
+
+  # Squeeze score (range: -1 to +1)
+  squeeze:
+    break_above: 1.0
+    break_below: -1.0
+    no_break: 0.0
+
+  # Band walk score (range: -0.5 to +0.5)
+  band_walk:
+    upper_walk: 0.5
+    lower_walk: -0.5
+
+  # Reversal score (range: -0.5 to +0.5)
+  reversal:
+    w_bottom: 0.5
+    m_top: -0.5
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  squeeze_walk: 4        # squeeze breakout + band walk
+  squeeze_or_pattern: 3  # squeeze breakout or W/M pattern
+  beyond_bands: 2        # clear position beyond bands
+  near_band: 1           # near band but no pattern
+  neutral: 0             # price near middle, no squeeze
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 150   # 120 bandwidth pctile + 20 SMA + buffer
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Day T only uses data with date < target_date.

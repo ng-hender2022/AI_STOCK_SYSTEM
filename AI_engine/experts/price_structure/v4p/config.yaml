@@ -1,0 +1,67 @@
+# V4P — Price Action Expert Configuration
+# Expert ID: V4P
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4P
+expert_name: Price Action Expert
+group: PRICE_STRUCTURE
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# PRICE ACTION PARAMETERS
+# ---------------------------------------------------------------------------
+swing_window: 2          # bars before/after for swing detection (5-bar window = 2+1+2)
+swing_lookback: 40       # bars to scan for swing highs/lows
+sma_period: 20           # SMA20 for trend filter
+sr_period: 20            # 20-day high/low for support/resistance
+sma_slope_window: 5      # bars for SMA20 slope computation
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Trend structure score (-2 to +2)
+  trend:
+    uptrend: 2            # HH+HL count > LH+LL count by margin
+    mild_up: 1            # slight bullish bias in swing structure
+    consolidation: 0
+    mild_down: -1          # slight bearish bias
+    downtrend: -2          # LH+LL count > HH+HL count by margin
+
+  # Range / Breakout score (-1 to +1)
+  range:
+    breakout: 1            # close > High20
+    breakdown: -1          # close < Low20
+    neutral: 0             # between Low20 and High20
+
+  # SMA20 score (-1 to +1)
+  sma20:
+    bullish: 1             # close > SMA20 AND SMA20 slope positive
+    bearish: -1            # close < SMA20 AND SMA20 slope negative
+    neutral: 0
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # 4 = breakout + trend + SMA confirm
+  # 3 = trend + breakout (no SMA)
+  # 2 = trend only (clear structure)
+  # 1 = weak/partial signals
+  # 0 = none / insufficient
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 50     # need swing_lookback + sr_period + buffer
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.
