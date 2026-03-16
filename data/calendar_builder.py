@@ -130,7 +130,7 @@ class CalendarBuilder:
             "dates_parsed": len(rows_parsed),
             "written_db": len(rows_parsed),
             "written_csv": str(CALENDAR_MASTER_PATH),
-            "date_range": f"{rows_parsed[0][0]} → {rows_parsed[-1][0]}" if rows_parsed else "empty",
+            "date_range": f"{rows_parsed[0][0]} to {rows_parsed[-1][0]}" if rows_parsed else "empty",
         }
 
     def build_from_db(self) -> dict:

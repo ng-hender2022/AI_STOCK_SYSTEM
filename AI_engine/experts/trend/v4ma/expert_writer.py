@@ -1,0 +1,121 @@
+"""
+V4MA Expert Writer
+Ghi output vao signals.db -> expert_signals.
+Doc universe tu MASTER_UNIVERSE.md.
+"""
+
+import json
+import re
+import sqlite3
+from pathlib import Path
+
+from .feature_builder import MAFeatureBuilder
+from .signal_logic import MASignalLogic, MAOutput
+
+MASTER_UNIVERSE_PATH = Path(r"D:\AI\AI_brain\SYSTEM\MASTER_UNIVERSE.md")
+
+
+def load_universe() -> list[str]:
+    text = MASTER_UNIVERSE_PATH.read_text(encoding="utf-8")
+    match = re.search(r"## DANH SACH DAY DU.*?```\s*\n(.*?)```", text, re.DOTALL)
+    if not match:
+        match = re.search(r"## DANH S.*?```\s*\n(.*?)```", text, re.DOTALL)
+    if not match:
+        raise RuntimeError(f"Cannot parse universe from {MASTER_UNIVERSE_PATH}")
+    raw = match.group(1)
+    return [s.strip() for s in raw.replace("\n", ",").split(",") if s.strip()]
+
+
+class MAExpertWriter:
+    """
+    End-to-end V4MA pipeline.
+
+    Usage:
+        writer = MAExpertWriter(market_db, signals_db)
+        output = writer.run_symbol("FPT", "2026-03-16")
+        results = writer.run_all("2026-03-16")
+    """
+
+    EXPERT_ID = "V4MA"
+
+    def __init__(self, market_db: str | Path, signals_db: str | Path):
+        self.market_db = str(market_db)
+        self.signals_db = str(signals_db)
+        self.feature_builder = MAFeatureBuilder(market_db)
+        self.signal_logic = MASignalLogic()
+
+    def _connect_signals(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.signals_db, timeout=30)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
+    def _write_output(self, conn: sqlite3.Connection, output: MAOutput, features) -> None:
+        metadata = {
+            "alignment": output.alignment,
+            "cross_signal": output.cross_signal,
+            "ma_norm": output.ma_norm,
+            "alignment_score": output.alignment_score,
+            "cross_score": output.cross_score,
+            "dist_ema10": round(features.dist_ema10, 6),
+            "dist_ema20": round(features.dist_ema20, 6),
+            "dist_ma50": round(features.dist_ma50, 6),
+            "dist_ma100": round(features.dist_ma100, 6),
+            "dist_ma200": round(features.dist_ma200, 6),
+            "ema10_slope": round(features.ema10_slope, 6),
+            "ema20_slope": round(features.ema20_slope, 6),
+            "ma50_slope": round(features.ma50_slope, 6),
+            "ma100_slope": round(features.ma100_slope, 6),
+            "ma200_slope": round(features.ma200_slope, 6),
+            "ema10_over_ema20": features.ema10_over_ema20,
+            "ma50_over_ma100": features.ma50_over_ma100,
+            "ma100_over_ma200": features.ma100_over_ma200,
+            "ma50_over_ma200": features.ma50_over_ma200,
+            "golden_cross": features.golden_cross,
+            "death_cross": features.death_cross,
+        }
+
+        conn.execute(
+            """INSERT OR REPLACE INTO expert_signals
+               (symbol, date, snapshot_time, expert_id,
+                primary_score, secondary_score,
+                signal_code, signal_quality, metadata_json)
+               VALUES (?, ?, 'EOD', ?, ?, ?, ?, ?, ?)""",
+            (
+                output.symbol, output.date, self.EXPERT_ID,
+                output.ma_score, output.ma_norm,
+                output.signal_code, output.signal_quality,
+                json.dumps(metadata),
+            ),
+        )
+
+    def run_symbol(self, symbol: str, target_date: str) -> MAOutput:
+        features = self.feature_builder.build(symbol, target_date)
+        output = self.signal_logic.compute(features)
+        conn = self._connect_signals()
+        try:
+            if output.has_sufficient_data:
+                self._write_output(conn, output, features)
+            conn.commit()
+        finally:
+            conn.close()
+        return output
+
+    def run_all(
+        self, target_date: str, symbols: list[str] | None = None
+    ) -> list[MAOutput]:
+        if symbols is None:
+            symbols = load_universe()
+        features_list = self.feature_builder.build_batch(symbols, target_date)
+        results = []
+        conn = self._connect_signals()
+        try:
+            for feat in features_list:
+                output = self.signal_logic.compute(feat)
+                if output.has_sufficient_data:
+                    self._write_output(conn, output, feat)
+                results.append(output)
+            conn.commit()
+        finally:
+            conn.close()
+        return results
