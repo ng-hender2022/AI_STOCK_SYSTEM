@@ -1,0 +1,116 @@
+# V4RS — Relative Strength Expert Configuration
+# Expert ID: V4RS
+# Type: Per-symbol (compares each stock vs VNINDEX, ranks among 91 stocks)
+
+expert_id: V4RS
+expert_name: Relative Strength Expert
+group: MARKET_CONTEXT
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# RS PARAMETERS
+# ---------------------------------------------------------------------------
+rs_periods:
+  - 5
+  - 20
+  - 60
+
+# RS_Line SMA periods for trend detection
+rs_sma_short: 10
+rs_sma_long: 30
+
+# Slope calculation period for RS_Line
+slope_period: 20
+
+# Acceleration period
+accel_period: 10
+
+# Benchmark symbol
+benchmark: "VNINDEX"
+
+# ---------------------------------------------------------------------------
+# RANK PARAMETERS
+# ---------------------------------------------------------------------------
+# Rank change threshold for rapid movement modifier
+rank_change_threshold: 20
+rank_change_period: 10
+
+# VNINDEX flat threshold (absolute return < this -> use absolute rank)
+vnindex_flat_threshold: 0.001  # 0.1%
+
+# ---------------------------------------------------------------------------
+# SCORING: Decile x Trend matrix
+# ---------------------------------------------------------------------------
+# Decile 1 = top 10%, Decile 10 = bottom 10%
+# RS_Trend: RISING, FLAT, FALLING
+scoring:
+  decile_trend:
+    1:
+      RISING: 4
+      FLAT: 3
+      FALLING: 2
+    2:
+      RISING: 3
+      FLAT: 2
+      FALLING: 1
+    3:
+      RISING: 2
+      FLAT: 2
+      FALLING: 1
+    4:
+      RISING: 2
+      FLAT: 1
+      FALLING: 0
+    5:
+      RISING: 1
+      FLAT: 0
+      FALLING: 0
+    6:
+      RISING: 0
+      FLAT: 0
+      FALLING: -1
+    7:
+      RISING: 0
+      FLAT: -1
+      FALLING: -2
+    8:
+      RISING: -1
+      FLAT: -2
+      FALLING: -2
+    9:
+      RISING: -2
+      FLAT: -2
+      FALLING: -3
+    10:
+      RISING: -2
+      FLAT: -3
+      FALLING: -4
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # Based on decile extremity + agreement across periods + trend confirmation
+  # 4: top/bottom 2 deciles, trend confirms, all periods agree
+  # 3: top/bottom 3 deciles, trend partially confirms
+  # 2: moderate decile, some agreement
+  # 1: middle deciles, mixed signals
+  # 0: insufficient data
+  extreme_decile: 2     # deciles 1-2 or 9-10 considered extreme
+  strong_decile: 3      # deciles 1-3 or 8-10 considered strong
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 80   # need 60 + buffer for RS_60d + SMA30
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.

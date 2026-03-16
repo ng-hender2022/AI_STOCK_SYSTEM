@@ -1,0 +1,83 @@
+# V4S — Sector Strength Expert Configuration
+# Expert ID: V4S
+# Type: Per-symbol (each stock scored by its sector strength)
+
+expert_id: V4S
+expert_name: Sector Strength Expert
+group: MARKET_CONTEXT
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# SECTOR PARAMETERS
+# ---------------------------------------------------------------------------
+periods:
+  return_short: 5       # short-term return window
+  return_medium: 20     # medium-term return window
+  sma_breadth: 50       # SMA period for breadth calc
+  rank_change_lookback: 10  # days to measure rank change
+  rotation_threshold: 3     # rank positions change for rotation signal
+
+# ---------------------------------------------------------------------------
+# SCORING — Sector Strength Sub-Score
+# ---------------------------------------------------------------------------
+scoring:
+  sector_strength:
+    # rank_20d = 1 AND vs_market_20d > 5%
+    top_sector: 4
+    # rank_20d in top 2 AND vs_market_20d > 3%
+    strong_sector: 3
+    # rank_20d in top 3 AND vs_market_20d > 1%
+    above_avg_sector: 2
+    # rank_20d in top half AND vs_market_20d > 0%
+    mild_positive: 1
+    # rank_20d in middle third
+    neutral: 0
+    # rank_20d in bottom half AND vs_market_20d < 0%
+    mild_negative: -1
+    # rank_20d in bottom 3 AND vs_market_20d < -1%
+    below_avg_sector: -2
+    # rank_20d in bottom 2 AND vs_market_20d < -3%
+    weak_sector: -3
+    # rank_20d = last AND vs_market_20d < -5%
+    worst_sector: -4
+
+  momentum_modifier:
+    accel_top_half: 1      # momentum > 0, sector in top half
+    decel_top_half: -1     # momentum < 0, sector in top half
+    decel_bottom_half: -1  # momentum < 0, sector in bottom half
+    rotation_in: 1         # rank improved >= 3 positions
+    rotation_out: -1       # rank declined >= 3 positions
+
+  breadth_modifier:
+    high_breadth: 1        # pct_above_sma50 > 80%
+    low_breadth: -1        # pct_above_sma50 < 20%
+
+  stock_within_sector:
+    leader_bonus: 1        # is_sector_leader AND stock_vs_sector > 3%
+    laggard_penalty: -1    # is_sector_laggard AND stock_vs_sector < -3%
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  high: 4       # rank consistent 5d/20d, breadth confirms, momentum aligns
+  medium: 3     # rank clear (top/bottom 3) but one metric diverges
+  low: 2        # sector in middle or 5d/20d ranks diverge
+  transitional: 1  # rank changed 3+ positions recently
+  none: 0
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 60
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Day T only uses data up to close of T-1.

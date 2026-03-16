@@ -1,0 +1,48 @@
+# V4BR — Market Breadth Expert Configuration
+# Expert ID: V4BR
+# Type: Market-wide (computed across all 91 stocks, written per symbol)
+
+expert_id: V4BR
+expert_name: Market Breadth Expert
+group: CONTEXT
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+breadth_score:
+  min: -4
+  max: 4
+
+# ---------------------------------------------------------------------------
+# INDICATOR PARAMETERS
+# ---------------------------------------------------------------------------
+indicators:
+  sma_period: 50              # SMA period for pct_above_sma50
+  new_high_low_lookback: 20   # 20-day highs/lows
+  breadth_momentum_period: 5  # 5-day change in pct_above_sma50
+
+# ---------------------------------------------------------------------------
+# DIVERGENCE DETECTION
+# ---------------------------------------------------------------------------
+divergence:
+  vnindex_high_lookback: 20   # VNINDEX 20-day high check
+  breadth_decline_days: 5     # pct_above_sma50 declining 5+ consecutive days
+  neg_div_cap: 1              # cap breadth score at +1 on neg divergence
+  pos_div_floor: -1           # floor breadth score at -1 on pos divergence
+
+# ---------------------------------------------------------------------------
+# MINIMUM DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+data:
+  min_history_days: 60        # minimum trading days needed per stock
+  min_stocks_with_data: 15    # minimum stocks with valid data to compute breadth
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY RULES
+# ---------------------------------------------------------------------------
+quality:
+  high_min_agree: 4           # all 4 sub-scores agree in direction
+  high_min_abs: 3             # absolute composite >= 3
+  medium_min_agree: 3         # 3 of 4 agree
+  medium_min_abs: 2           # absolute composite >= 2

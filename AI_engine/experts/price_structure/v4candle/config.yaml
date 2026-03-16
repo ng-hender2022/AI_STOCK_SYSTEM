@@ -1,0 +1,78 @@
+# V4CANDLE — Candlestick Pattern Expert Configuration
+# Expert ID: V4CANDLE
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4CANDLE
+expert_name: Candlestick Pattern Expert
+group: PRICE_STRUCTURE
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# CANDLE DETECTION PARAMETERS
+# ---------------------------------------------------------------------------
+# Body / shadow thresholds
+doji_body_pct: 0.10          # body_pct < 0.10 => doji
+marubozu_body_pct: 0.85      # body_pct > 0.85 => marubozu
+hammer_shadow_ratio: 2.0     # lower_shadow >= 2x body for hammer
+shooting_shadow_ratio: 2.0   # upper_shadow >= 2x body for shooting star
+small_body_pct: 0.30         # for morning/evening star middle candle
+
+# Engulfing
+engulf_min: 1.0              # engulfing body must be >= 1x prior body
+
+# Volume confirmation
+vol_avg_period: 20           # 20-day average volume
+vol_confirm_ratio: 1.5       # volume >= 1.5x avg for confirmation
+
+# Swing context
+swing_window: 2              # bars before/after for swing detection
+swing_lookback: 20           # bars to scan for swings
+sr_proximity: 0.015          # 1.5% proximity to swing high/low
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Pattern base scores (-3..+3)
+  pattern:
+    strong_bull: 3       # engulfing, morning star, three white soldiers
+    moderate_bull: 2     # hammer, inverted hammer
+    weak_bull: 1         # doji at support, spinning top at support
+    neutral: 0           # no pattern / doji mid-range
+    weak_bear: -1        # doji at resistance
+    moderate_bear: -2    # shooting star, hanging man
+    strong_bear: -3      # bearish engulfing, evening star, three black crows
+
+  # Volume confirmation modifier (-0.5..+0.5)
+  volume:
+    confirm_bonus: 0.5   # added in pattern direction when vol > 1.5x avg
+
+  # Context modifier (-0.5..+0.5)
+  context:
+    swing_bonus: 0.5     # bull pattern at swing low, bear pattern at swing high
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # 4 = strong pattern + vol confirm + swing context
+  # 3 = strong pattern + (vol OR swing)
+  # 2 = moderate pattern
+  # 1 = weak pattern
+  # 0 = no pattern
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 25    # need vol avg(20) + swing detection + 3 bars for triple
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.
