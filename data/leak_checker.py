@@ -66,6 +66,7 @@ class LeakChecker:
         )
         results["feature_label_order"] = self.check_feature_label_order()
         results["no_future_close"] = self.check_no_future_close_in_signals()
+        results["no_pre_listing_data"] = self.check_no_pre_listing_data()
 
         for key, val in results.items():
             if not val["passed"]:
@@ -163,6 +164,113 @@ class LeakChecker:
             conn.close()
 
         return {"passed": True, "message": "OK"}
+
+    def check_no_pre_listing_data(self) -> dict:
+        """
+        Verify: no features/signals exist for dates before a symbol's
+        first_trading_date in symbols_master.
+
+        This prevents using data from before a stock was listed.
+        """
+        conn = self._connect(self.market_db)
+        try:
+            # Check if first_trading_date column exists
+            cols = {row["name"] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+            if "first_trading_date" not in cols:
+                return {"passed": True, "message": "first_trading_date column not present, skipped"}
+
+            # Check prices_daily for rows before first_trading_date
+            rows = conn.execute("""
+                SELECT p.symbol, p.date, s.first_trading_date
+                FROM prices_daily p
+                JOIN symbols_master s ON p.symbol = s.symbol
+                WHERE s.first_trading_date IS NOT NULL
+                  AND p.date < s.first_trading_date
+                LIMIT 10
+            """).fetchall()
+
+            if rows:
+                examples = [f"{r['symbol']}:{r['date']}<{r['first_trading_date']}" for r in rows]
+                return {
+                    "passed": False,
+                    "message": (
+                        f"{len(rows)}+ price rows before first_trading_date. "
+                        f"Examples: {', '.join(examples[:5])}"
+                    ),
+                }
+        finally:
+            conn.close()
+
+        # Check signals.db if available
+        if self.signals_db:
+            conn_s = self._connect(self.signals_db)
+            conn_m = self._connect(self.market_db)
+            try:
+                # Get first_trading_dates
+                ftd_rows = conn_m.execute(
+                    "SELECT symbol, first_trading_date FROM symbols_master WHERE first_trading_date IS NOT NULL"
+                ).fetchall()
+                ftd_map = {r["symbol"]: r["first_trading_date"] for r in ftd_rows}
+
+                violations = []
+                for sym, ftd in ftd_map.items():
+                    row = conn_s.execute(
+                        "SELECT COUNT(*) as cnt FROM expert_signals WHERE symbol=? AND date<?",
+                        (sym, ftd),
+                    ).fetchone()
+                    if row["cnt"] > 0:
+                        violations.append(f"{sym}:{row['cnt']} signals before {ftd}")
+
+                if violations:
+                    return {
+                        "passed": False,
+                        "message": f"Signals before first_trading_date: {', '.join(violations[:5])}",
+                    }
+            finally:
+                conn_s.close()
+                conn_m.close()
+
+        return {"passed": True, "message": "OK"}
+
+    def get_first_trading_dates(self) -> dict[str, str]:
+        """
+        Get first_trading_date for all symbols.
+        Useful for R Layer to filter feature matrix.
+        """
+        conn = self._connect(self.market_db)
+        try:
+            cols = {row["name"] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+            if "first_trading_date" not in cols:
+                return {}
+            rows = conn.execute(
+                "SELECT symbol, first_trading_date FROM symbols_master WHERE first_trading_date IS NOT NULL"
+            ).fetchall()
+            return {r["symbol"]: r["first_trading_date"] for r in rows}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def filter_feature_matrix(df, first_trading_dates: dict):
+        """
+        Remove rows from feature matrix where date < first_trading_date.
+        For R Layer training pipeline.
+
+        Args:
+            df: pandas DataFrame with 'symbol' and 'date' columns
+            first_trading_dates: {symbol: first_trading_date} dict
+
+        Returns:
+            filtered DataFrame
+        """
+        mask = []
+        for _, row in df.iterrows():
+            sym = row["symbol"]
+            ftd = first_trading_dates.get(sym)
+            if ftd and row["date"] < ftd:
+                mask.append(False)
+            else:
+                mask.append(True)
+        return df[mask].reset_index(drop=True)
 
     def _log_to_audit(self, check_name: str, message: str) -> None:
         """Log leakage violation to audit.db if available."""

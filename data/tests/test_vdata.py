@@ -457,5 +457,146 @@ class TestLeakChecker:
             checker.check_all("2025-07-01", "2025-06-30")
 
 
+# ---------------------------------------------------------------------------
+# First Trading Date / Listing Date Tests
+# ---------------------------------------------------------------------------
+
+class TestFirstTradingDate:
+
+    def test_importer_sets_first_trading_date(self, test_env):
+        """AmiBroker importer should set first_trading_date in symbols_master."""
+        market_db, _, tmp_path = test_env
+        csv_path = str(tmp_path / "test.csv")
+        _create_ami_csv(csv_path)
+
+        importer = AmiBrokerImporter(market_db)
+        importer.import_file(csv_path, filter_universe=False)
+
+        conn = sqlite3.connect(market_db)
+        # Check column exists
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        assert "first_trading_date" in cols
+
+        # Check FPT has a first_trading_date
+        row = conn.execute(
+            "SELECT first_trading_date FROM symbols_master WHERE symbol='FPT'"
+        ).fetchone()
+        conn.close()
+        assert row is not None
+        assert row[0] is not None
+
+    def test_no_data_before_first_trading_date(self, test_env):
+        """No price data should exist before first_trading_date."""
+        market_db, _, tmp_path = test_env
+
+        # Create a stock that lists late
+        conn = sqlite3.connect(market_db)
+        conn.execute(
+            "INSERT OR IGNORE INTO symbols_master (symbol,name,is_tradable,added_date) VALUES (?,?,?,?)",
+            ("LATE", "Late Stock", 1, "2025-01-01"),
+        )
+        # Add data starting from 2025-04-01 (late lister)
+        for i in range(20):
+            d = date(2025, 4, 1) + timedelta(days=i)
+            if d.weekday() >= 5:
+                continue
+            conn.execute(
+                "INSERT OR IGNORE INTO prices_daily (symbol,date,open,high,low,close,volume) VALUES (?,?,?,?,?,?,?)",
+                ("LATE", d.isoformat(), 50, 51, 49, 50, 100000),
+            )
+        conn.commit()
+
+        # Now run importer to set first_trading_date
+        csv_path = str(tmp_path / "empty.csv")
+        with open(csv_path, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["Ticker", "Date", "Open", "High", "Low", "Close", "Volume", "RefPrice"])
+
+        importer = AmiBrokerImporter(market_db)
+        importer.import_file(csv_path, filter_universe=False)
+
+        # Verify first_trading_date is set correctly
+        row = conn.execute(
+            "SELECT first_trading_date FROM symbols_master WHERE symbol='LATE'"
+        ).fetchone()
+        assert row[0] == "2025-04-01"
+        conn.close()
+
+    def test_label_builder_skips_before_listing(self, test_env):
+        """LabelBuilder should return None for dates before first_trading_date."""
+        market_db, _, _ = test_env
+        CalendarBuilder(market_db).build_from_db()
+
+        # Set first_trading_date for FPT to a mid-range date
+        conn = sqlite3.connect(market_db)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        if "first_trading_date" not in cols:
+            conn.execute("ALTER TABLE symbols_master ADD COLUMN first_trading_date DATE")
+        conn.execute("UPDATE symbols_master SET first_trading_date='2025-03-01' WHERE symbol='FPT'")
+        conn.commit()
+        conn.close()
+
+        lb = LabelBuilder(market_db)
+        # Before listing date — should return None
+        result = lb.compute_labels("FPT", "2025-02-15")
+        assert result is None
+
+        # After listing date — should work
+        result = lb.compute_labels("FPT", "2025-04-01")
+        assert result is not None
+
+    def test_leak_checker_detects_pre_listing_prices(self, test_env):
+        """LeakChecker should detect price data before first_trading_date."""
+        market_db, signals_db, _ = test_env
+
+        # Set first_trading_date AFTER some existing data
+        conn = sqlite3.connect(market_db)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        if "first_trading_date" not in cols:
+            conn.execute("ALTER TABLE symbols_master ADD COLUMN first_trading_date DATE")
+        # Set FPT first_trading_date to 2025-06-01, but data starts 2025-01-01
+        conn.execute("UPDATE symbols_master SET first_trading_date='2025-06-01' WHERE symbol='FPT'")
+        conn.commit()
+        conn.close()
+
+        checker = LeakChecker(market_db, signals_db)
+        result = checker.check_no_pre_listing_data()
+        assert result["passed"] is False  # FPT has data before 2025-06-01
+
+    def test_leak_checker_passes_when_clean(self, test_env):
+        """LeakChecker should pass when all data is after first_trading_date."""
+        market_db, signals_db, _ = test_env
+
+        conn = sqlite3.connect(market_db)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        if "first_trading_date" not in cols:
+            conn.execute("ALTER TABLE symbols_master ADD COLUMN first_trading_date DATE")
+        # Set first_trading_date to before all data
+        conn.execute("UPDATE symbols_master SET first_trading_date='2024-01-01'")
+        conn.commit()
+        conn.close()
+
+        checker = LeakChecker(market_db, signals_db)
+        result = checker.check_no_pre_listing_data()
+        assert result["passed"] is True
+
+    def test_get_first_trading_dates(self, test_env):
+        """LeakChecker.get_first_trading_dates should return dict."""
+        market_db, signals_db, _ = test_env
+
+        conn = sqlite3.connect(market_db)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        if "first_trading_date" not in cols:
+            conn.execute("ALTER TABLE symbols_master ADD COLUMN first_trading_date DATE")
+        conn.execute("UPDATE symbols_master SET first_trading_date='2025-01-02' WHERE symbol='FPT'")
+        conn.commit()
+        conn.close()
+
+        checker = LeakChecker(market_db, signals_db)
+        ftd = checker.get_first_trading_dates()
+        assert isinstance(ftd, dict)
+        assert ftd.get("FPT") == "2025-01-02"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

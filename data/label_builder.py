@@ -39,6 +39,28 @@ class LabelBuilder:
     def __init__(self, market_db: str | Path):
         self.market_db = str(market_db)
         self.calendar = CalendarBuilder(market_db)
+        self._ftd_cache: dict[str, str | None] = {}
+
+    def _get_first_trading_date(
+        self, conn: sqlite3.Connection, symbol: str
+    ) -> str | None:
+        """Get first_trading_date for symbol from symbols_master."""
+        if symbol in self._ftd_cache:
+            return self._ftd_cache[symbol]
+
+        # Check if column exists
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        if "first_trading_date" not in cols:
+            self._ftd_cache[symbol] = None
+            return None
+
+        row = conn.execute(
+            "SELECT first_trading_date FROM symbols_master WHERE symbol=?",
+            (symbol,),
+        ).fetchone()
+        ftd = row["first_trading_date"] if row else None
+        self._ftd_cache[symbol] = ftd
+        return ftd
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.market_db, timeout=30)
@@ -78,6 +100,11 @@ class LabelBuilder:
         """
         conn = self._connect()
         try:
+            # Check first_trading_date — no labels before listing
+            ftd = self._get_first_trading_date(conn, symbol)
+            if ftd and feature_date < ftd:
+                return None  # symbol not yet listed on this date
+
             close_t = self._get_close(conn, symbol, feature_date)
             if close_t is None or close_t <= 0:
                 return None

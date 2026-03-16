@@ -66,6 +66,32 @@ class AmiBrokerImporter:
         if "ref_price" not in cols:
             conn.execute("ALTER TABLE prices_daily ADD COLUMN ref_price REAL")
 
+    def _ensure_first_trading_date_column(self, conn: sqlite3.Connection) -> None:
+        """Add first_trading_date column to symbols_master if not exists."""
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(symbols_master)")}
+        if "first_trading_date" not in cols:
+            conn.execute(
+                "ALTER TABLE symbols_master ADD COLUMN first_trading_date DATE"
+            )
+
+    def _update_first_trading_dates(self, conn: sqlite3.Connection) -> None:
+        """
+        Set first_trading_date for each symbol in symbols_master
+        based on earliest date in prices_daily.
+        """
+        self._ensure_first_trading_date_column(conn)
+        conn.execute("""
+            UPDATE symbols_master
+            SET first_trading_date = (
+                SELECT MIN(date) FROM prices_daily
+                WHERE prices_daily.symbol = symbols_master.symbol
+            )
+            WHERE EXISTS (
+                SELECT 1 FROM prices_daily
+                WHERE prices_daily.symbol = symbols_master.symbol
+            )
+        """)
+
     def import_file(
         self,
         csv_path: str | Path,
@@ -142,6 +168,9 @@ class AmiBrokerImporter:
         if batch:
             self._flush_batch(conn, batch)
             stats["imported"] += len(batch)
+
+        # Update first_trading_date in symbols_master
+        self._update_first_trading_dates(conn)
 
         conn.commit()
         conn.close()
