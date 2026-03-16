@@ -1,0 +1,86 @@
+# V4MACD — MACD Expert Configuration
+# Expert ID: V4MACD
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4MACD
+expert_name: MACD Expert
+group: MOMENTUM
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: -4
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# MACD PARAMETERS (standard Appel settings)
+# ---------------------------------------------------------------------------
+macd_params:
+  fast_period: 12
+  slow_period: 26
+  signal_period: 9
+
+slope_window: 3   # bars to compute MACD/histogram slope
+
+# ---------------------------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------------------------
+scoring:
+  # Signal line cross score (range -2 to +2)
+  cross:
+    bull_cross_above_zero: 2      # MACD crosses above signal, both > 0
+    bull_cross_below_zero: 1      # MACD crosses above signal, below zero
+    above_signal_no_cross: 0.5    # MACD above signal, no fresh cross
+    neutral: 0                    # MACD = signal
+    below_signal_no_cross: -0.5   # MACD below signal, no fresh cross
+    bear_cross_above_zero: -1     # MACD crosses below signal, above zero
+    bear_cross_below_zero: -2     # MACD crosses below signal, both < 0
+
+  # Zero line score (range -1 to +1)
+  zero_line:
+    above_rising: 1
+    above_falling: 0.5
+    near_zero: 0
+    below_rising: -0.5
+    below_falling: -1
+
+  # Histogram momentum score (range -0.5 to +0.5)
+  histogram:
+    positive_expanding: 0.5
+    negative_expanding: -0.5
+    contracting: 0
+
+  # Divergence score (range -1 to +1)
+  divergence:
+    bullish: 1
+    bearish: -1
+    none: 0
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  level_4: "cross + zero_confirm + divergence"
+  level_3: "cross + zero_confirm OR divergence alone"
+  level_2: "cross only, clear direction"
+  level_1: "trending but no cross"
+  level_0: "flat near zero"
+
+# ---------------------------------------------------------------------------
+# DIVERGENCE DETECTION
+# ---------------------------------------------------------------------------
+divergence:
+  lookback_min: 10
+  lookback_max: 30
+  min_pivot_gap: 5    # minimum bars between MACD pivots
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 35   # need 26 + 9 buffer for MACD signal line
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Day T only uses data with date < target_date.

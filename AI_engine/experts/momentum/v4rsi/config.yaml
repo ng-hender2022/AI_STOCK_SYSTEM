@@ -1,0 +1,59 @@
+# V4RSI -- RSI Expert Configuration
+# Expert ID: V4RSI
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4RSI
+expert_name: RSI Expert
+group: MOMENTUM
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+# primary_score = RSI value (0 to 100)
+# secondary_score = rsi_norm = (rsi - 50) / 50 -> range -1 to +1
+scale_min: 0
+scale_max: 100
+
+# ---------------------------------------------------------------------------
+# RSI PARAMETERS
+# ---------------------------------------------------------------------------
+rsi_period: 14           # Wilder standard
+rsi_slope_window: 3      # days for RSI slope
+rsi_ma_period: 10        # SMA of RSI
+
+# ---------------------------------------------------------------------------
+# LEVELS
+# ---------------------------------------------------------------------------
+levels:
+  extreme_overbought: 80
+  overbought: 70
+  oversold: 30
+  extreme_oversold: 20
+  centerline: 50
+
+# ---------------------------------------------------------------------------
+# DIVERGENCE
+# ---------------------------------------------------------------------------
+divergence:
+  lookback_min: 10
+  lookback_max: 30
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY (0 to 4)
+# ---------------------------------------------------------------------------
+# 4: divergence + failure swing + extreme OB/OS
+# 3: divergence at OB/OS level
+# 2: extreme OB/OS (< 20 or > 80)
+# 1: regular OB/OS (< 30 or > 70)
+# 0: neutral zone, no divergence
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 20     # RSI(14) needs ~20 days with buffer
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Ngay T chi dung data den close T-1.

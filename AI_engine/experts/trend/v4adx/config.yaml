@@ -1,0 +1,69 @@
+# V4ADX — Trend Strength / ADX Expert Configuration
+# Expert ID: V4ADX
+# Type: Per-symbol (runs for all 92 symbols)
+
+expert_id: V4ADX
+expert_name: ADX Trend Strength Expert
+group: TREND
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# OUTPUT SCALE
+# ---------------------------------------------------------------------------
+scale_min: 0
+scale_max: 4
+
+# ---------------------------------------------------------------------------
+# ADX PARAMETERS
+# ---------------------------------------------------------------------------
+adx_period: 14          # Wilder standard
+slope_window: 3         # days to compute ADX slope
+
+# ---------------------------------------------------------------------------
+# SCORING (trend strength only, direction-neutral)
+# ---------------------------------------------------------------------------
+scoring:
+  # ADX value -> adx_score
+  thresholds:
+    no_trend: 15        # ADX < 15 -> score 0
+    weak: 20            # 15 <= ADX < 20 -> score 1
+    moderate: 25        # 20 <= ADX < 25 -> score 2
+    strong: 40          # 25 <= ADX < 40 -> score 3
+    very_strong: 40     # ADX >= 40 -> score 4
+
+# ---------------------------------------------------------------------------
+# SIGNAL QUALITY
+# ---------------------------------------------------------------------------
+quality:
+  # Quality 4: ADX > 30, DI cross confirmed, ADX rising
+  # Quality 3: ADX > 25, clear DI separation
+  # Quality 2: ADX 20-25 or DI cross with moderate ADX
+  # Quality 1: ADX 15-20, weak signal
+  # Quality 0: ADX < 15, no trend
+  adx_q4_min: 30
+  adx_q3_min: 25
+  adx_q2_min: 20
+  adx_q1_min: 15
+  di_separation_clear: 5   # |+DI - -DI| >= 5 for "clear" separation
+
+# ---------------------------------------------------------------------------
+# DIRECTION THRESHOLDS
+# ---------------------------------------------------------------------------
+direction:
+  neutral_band: 3       # |+DI - -DI| < 3 -> neutral
+
+# ---------------------------------------------------------------------------
+# EXHAUSTION
+# ---------------------------------------------------------------------------
+exhaustion:
+  adx_threshold: 40     # ADX > 40 and falling -> exhaustion signal
+
+# ---------------------------------------------------------------------------
+# DATA REQUIREMENTS
+# ---------------------------------------------------------------------------
+min_history_days: 50    # need ~2*14 + buffer for ADX warmup
+
+# ---------------------------------------------------------------------------
+# DATA LEAKAGE PREVENTION
+# ---------------------------------------------------------------------------
+# Day T only uses data with date < T (strictly before target_date).
