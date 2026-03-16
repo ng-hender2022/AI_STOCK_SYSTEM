@@ -120,13 +120,13 @@ class R4Model(RBaseModel):
         X_feat = X_feat[self._feature_names].fillna(0.0)
 
         probs = self.model.predict_proba(X_feat)
-        # probs shape: (n_samples, 9) for classes 0..8 (shifted from -4..+4)
+        trained_classes = list(self.model.classes_)  # actual classes present
 
         results = []
         for i in range(len(sym_dates)):
             p = probs[i]
-            # Expected regime score = sum(class_value * probability)
-            expected = sum((c - 4) * float(p[c]) for c in range(9))
+            # Expected regime score using actual trained classes (shifted back to -4..+4)
+            expected = sum((int(trained_classes[j]) - 4) * float(p[j]) for j in range(len(trained_classes)))
             score = max(-4.0, min(4.0, expected))
             confidence = float(max(p))
 
