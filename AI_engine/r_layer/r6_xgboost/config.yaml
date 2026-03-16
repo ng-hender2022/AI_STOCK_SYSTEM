@@ -1,0 +1,16 @@
+model_id: R6
+model_name: XGBoost Classifier
+model_type: classification
+default_horizon: 5
+hyperparams:
+  n_estimators: 300
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 20
+  eval_metric: mlogloss
+  use_label_encoder: false
+  device: cuda
+  verbosity: 0
+  random_state: 42

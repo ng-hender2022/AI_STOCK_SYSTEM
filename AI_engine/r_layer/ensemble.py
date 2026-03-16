@@ -20,13 +20,17 @@ class EnsembleEngine:
         engine.compute_ensemble("2014-07-29")
     """
 
+    # Weights as multipliers (0.8-1.2 range), normalized at runtime.
+    # R1 Linear excluded (OOS R2=0.0, no predictive value).
     DEFAULT_WEIGHTS = {
-        "r0": 0.10,  # baseline gets less weight
-        "r1": 0.15,
-        "r2": 0.20,
-        "r3": 0.25,  # GBDT gets most weight
-        "r4": 0.15,
-        "r5": 0.15,
+        "r0": 0.8,    # Baseline — weak but stable
+        # "r1" excluded — R2=0.0 in OOS, no signal
+        "r2": 1.2,    # RF — best per-symbol precision (74.3%)
+        "r3": 1.0,    # LightGBM — solid
+        "r4": 0.8,    # Regime — market-level only
+        "r5": 0.8,    # Sector — weak OOS (49.4%)
+        "r6": 1.0,    # XGBoost — solid
+        "r7": 1.2,    # CatBoost — strong per-symbol (63.9%)
     }
 
     DIRECTION_THRESHOLD = 0.5

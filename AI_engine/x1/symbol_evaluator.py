@@ -30,9 +30,13 @@ class SymbolEvaluation:
     avg_volume_ratio: float = 1.0   # recent 5d vol / 20d vol
 
     # Routing
-    route: str = "NORMAL"           # MOMENTUM / MEAN_REVERSION / AVOID / NORMAL
+    route: str = "NORMAL"           # MOMENTUM / MEAN_REVERSION / NORMAL
     route_reason: str = ""
-    position_multiplier: float = 1.0  # applied to X1 position sizing
+    position_multiplier: float = 1.0  # from trend routing
+
+    # Precision-based sizing (from symbol_phase_metrics)
+    historical_precision: float = 0.5  # 0..1
+    precision_multiplier: float = 1.0  # applied on top of position_multiplier
 
     has_sufficient_data: bool = False
 
@@ -47,18 +51,62 @@ AVOID_VOLUME_DRY = 0.3        # volume ratio < 0.3 = no liquidity
 MIN_HISTORY = 25               # need 25 bars
 
 
+PRECISION_TIERS = [
+    (0.75, 1.2),   # precision >= 75% -> 1.2x
+    (0.60, 1.0),   # 60-75% -> 1.0x
+    (0.50, 0.85),  # 50-60% -> 0.85x
+    (0.00, 0.70),  # < 50% -> 0.7x
+]
+
+
+def _precision_multiplier(precision: float) -> float:
+    """Map historical precision to position multiplier."""
+    for threshold, mult in PRECISION_TIERS:
+        if precision >= threshold:
+            return mult
+    return 0.70
+
+
 class SymbolEvaluator:
     """
     Evaluate symbol trend and route to strategy.
+    Loads historical precision from models.db symbol_phase_metrics.
 
     Usage:
-        evaluator = SymbolEvaluator(market_db)
+        evaluator = SymbolEvaluator(market_db, models_db)
         ev = evaluator.evaluate("FPT", "2026-03-13")
-        batch = evaluator.evaluate_all(symbols, "2026-03-13")
     """
 
-    def __init__(self, market_db: str | Path):
+    def __init__(self, market_db: str | Path, models_db: str | Path | None = None):
         self.market_db = str(market_db)
+        self.models_db = str(models_db) if models_db else None
+        self._precision_cache = self._load_precision()
+
+    def _load_precision(self) -> dict[str, float]:
+        """Load latest ensemble precision per symbol from symbol_phase_metrics."""
+        if not self.models_db:
+            return {}
+        try:
+            conn = sqlite3.connect(self.models_db, timeout=10)
+            conn.row_factory = sqlite3.Row
+            # Get ensemble precision from the most recent phase (ALL_OOS or latest year)
+            rows = conn.execute("""
+                SELECT symbol, precision_t10, buy_signals
+                FROM symbol_phase_metrics
+                WHERE model_id = 'ENSEMBLE' AND buy_signals >= 3
+                ORDER BY phase DESC
+            """).fetchall()
+            conn.close()
+
+            # Keep first (latest phase) per symbol
+            result = {}
+            for r in rows:
+                sym = r["symbol"]
+                if sym not in result:
+                    result[sym] = float(r["precision_t10"])
+            return result
+        except Exception:
+            return {}
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.market_db, timeout=30)
@@ -132,8 +180,12 @@ class SymbolEvaluator:
             vol_20d = np.mean(volumes[-20:])
             ev.avg_volume_ratio = float(vol_5d / (vol_20d + 1e-9))
 
-        # Routing logic
+        # Routing logic (trend-based)
         ev.route, ev.route_reason, ev.position_multiplier = self._route(ev)
+
+        # Precision-based sizing (from historical data)
+        ev.historical_precision = self._precision_cache.get(symbol, 0.5)
+        ev.precision_multiplier = _precision_multiplier(ev.historical_precision)
 
         return ev
 
@@ -145,14 +197,14 @@ class SymbolEvaluator:
 
     @staticmethod
     def _route(ev: SymbolEvaluation) -> tuple[str, str, float]:
-        """Determine routing based on evaluation."""
-        # AVOID: extreme volatility
+        """Determine routing based on trend evaluation. No hard AVOID."""
+        # Extreme volatility: soft penalty (0.5x), not blocked
         if ev.volatility_20d >= AVOID_VOL:
-            return "AVOID", f"extreme vol {ev.volatility_20d:.3f}", 0.0
+            return "NORMAL", f"high vol {ev.volatility_20d:.3f} (0.5x)", 0.5
 
-        # AVOID: volume dried up
+        # Volume dried up: soft penalty (0.3x)
         if ev.avg_volume_ratio < AVOID_VOLUME_DRY:
-            return "AVOID", f"volume dry {ev.avg_volume_ratio:.2f}", 0.0
+            return "NORMAL", f"low volume {ev.avg_volume_ratio:.2f} (0.3x)", 0.3
 
         # MOMENTUM: strong uptrend with consistency
         if (ev.return_20d >= MOMENTUM_RETURN

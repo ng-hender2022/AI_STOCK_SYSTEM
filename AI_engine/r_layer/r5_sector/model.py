@@ -131,20 +131,50 @@ class R5Model(RBaseModel):
                 X_feat[col] = 0.0
         X_feat = X_feat[self._feature_names].fillna(0.0)
 
-        results = []
+        # Compute all raw predictions first for sector ranking
+        raw_preds = []
         for i in range(len(sym_dates)):
             sym = sym_dates.iloc[i]["symbol"]
             sector = self.sector_map.get(sym, "Khac")
-
             x_row = X_feat.iloc[i:i+1]
 
-            # Use sector model if available, else global
             if sector in self.sector_models:
                 raw = float(self.sector_models[sector].predict(x_row)[0])
             else:
                 raw = float(self.global_model.predict(x_row)[0])
 
+            raw_preds.append((sym, sector, raw))
+
+        # Compute sector ranks (top 30% filter)
+        sector_scores = {}
+        for sym, sector, raw in raw_preds:
+            if sector not in sector_scores:
+                sector_scores[sector] = []
+            sector_scores[sector].append((sym, raw))
+
+        # Rank within sector: True if in top 30%
+        in_top_30 = set()
+        for sector, pairs in sector_scores.items():
+            pairs_sorted = sorted(pairs, key=lambda x: x[1], reverse=True)
+            top_n = max(1, int(len(pairs_sorted) * 0.30))
+            for sym, _ in pairs_sorted[:top_n]:
+                in_top_30.add(sym)
+
+        results = []
+        for i, (sym, sector, raw) in enumerate(raw_preds):
             score = max(-4.0, min(4.0, raw * self.scale_factor))
+            confidence = min(1.0, abs(score) / 4.0)
+
+            # Tightened filters:
+            # 1. Only strong signals (abs >= 2.0)
+            # 2. Must be in top 30% of sector
+            # 3. Dampen weak signals
+            if abs(score) < 2.0:
+                score = score * 0.4  # dampen weak signals heavily
+            elif sym not in in_top_30:
+                score = score * 0.6  # not top of sector -> reduce
+
+            score = max(-4.0, min(4.0, score))
             confidence = min(1.0, abs(score) / 4.0)
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 

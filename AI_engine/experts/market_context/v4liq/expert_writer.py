@@ -63,6 +63,7 @@ class LiqExpertWriter:
             "spread_sub": round(float(output.spread_sub), 2),
             "trend_sub": round(float(output.trend_sub), 2),
             "liq_norm": round(float(output.liq_norm), 4),
+            "liquidity_shock": round(float(features.liquidity_shock), 6),
         }
 
         conn.execute(

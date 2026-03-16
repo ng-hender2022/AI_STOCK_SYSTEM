@@ -248,12 +248,46 @@ class TestEnsemble:
         from AI_engine.r_layer.ensemble import EnsembleEngine
         e = EnsembleEngine(MODELS_DB)
         assert e.weights is not None
-        assert sum(e.weights.values()) == pytest.approx(1.0, abs=0.01)
+
+    def test_r1_excluded(self):
+        from AI_engine.r_layer.ensemble import EnsembleEngine
+        e = EnsembleEngine(MODELS_DB)
+        assert "r1" not in e.weights
+
+    def test_weights_in_range(self):
+        from AI_engine.r_layer.ensemble import EnsembleEngine
+        e = EnsembleEngine(MODELS_DB)
+        for k, w in e.weights.items():
+            assert 0.8 <= w <= 1.2, f"{k} weight {w} not in 0.8-1.2 range"
+
+    def test_7_models_in_ensemble(self):
+        from AI_engine.r_layer.ensemble import EnsembleEngine
+        e = EnsembleEngine(MODELS_DB)
+        assert len(e.weights) == 7  # R0, R2-R7 (no R1)
+
+    def test_r2_r7_highest_weight(self):
+        from AI_engine.r_layer.ensemble import EnsembleEngine
+        e = EnsembleEngine(MODELS_DB)
+        assert e.weights["r2"] == 1.2
+        assert e.weights["r7"] == 1.2
 
     def test_direction_threshold(self):
         from AI_engine.r_layer.ensemble import EnsembleEngine
         e = EnsembleEngine(MODELS_DB)
         assert e.DIRECTION_THRESHOLD == 0.5
+
+
+class TestMasterSummaryR1Excluded:
+
+    def test_r1_not_in_r_models(self):
+        from AI_engine.r_layer.master_summary import MasterSummary
+        ms = MasterSummary(MODELS_DB)
+        assert "r1" not in ms.R_MODELS
+
+    def test_7_models_in_summary(self):
+        from AI_engine.r_layer.master_summary import MasterSummary
+        ms = MasterSummary(MODELS_DB)
+        assert len(ms.R_MODELS) == 7
 
 
 if __name__ == "__main__":

@@ -62,6 +62,7 @@ class ATRExpertWriter:
             "vol_regime": str(features.vol_regime),
             "atr_score": int(features.atr_score),
             "atr_norm": round(features.atr_norm, 4),
+            "volatility_compression": round(float(features.volatility_compression), 6),
         }
 
         conn.execute(

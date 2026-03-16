@@ -28,12 +28,40 @@ class FeatureMatrixWriter:
         self.market_db = str(market_db)
         self.meta_builder = MetaBuilder(signals_db, market_db)
         self.conflict_detector = ConflictDetector()
+        self.ensure_schema(self.signals_db)
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.signals_db, timeout=30)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.row_factory = sqlite3.Row
         return conn
+
+    @staticmethod
+    def ensure_schema(signals_db: str) -> None:
+        """Add new columns to meta_features if they don't exist."""
+        conn = sqlite3.connect(signals_db, timeout=30)
+        existing = {r[1] for r in conn.execute("PRAGMA table_info(meta_features)").fetchall()}
+        new_cols = {
+            "trend_alignment_score": "REAL DEFAULT 0",
+            "trend_strength_max": "REAL DEFAULT 0",
+            "ma_alignment_pct": "REAL DEFAULT 0",
+            "trend_persistence_avg": "REAL DEFAULT 0",
+            "momentum_divergence_count": "INTEGER DEFAULT 0",
+            "overbought_count": "INTEGER DEFAULT 0",
+            "oversold_count": "INTEGER DEFAULT 0",
+            "volume_pressure": "REAL DEFAULT 0",
+            "liquidity_shock_avg": "REAL DEFAULT 0",
+            "climax_volume_count": "INTEGER DEFAULT 0",
+            "compression_count": "INTEGER DEFAULT 0",
+            "bull_bear_ratio": "REAL DEFAULT 0.5",
+            "sector_momentum": "REAL DEFAULT 0",
+            "breakout_count": "INTEGER DEFAULT 0",
+        }
+        for col, typedef in new_cols.items():
+            if col not in existing:
+                conn.execute(f"ALTER TABLE meta_features ADD COLUMN {col} {typedef}")
+        conn.commit()
+        conn.close()
 
     def _write_meta(self, conn: sqlite3.Connection, meta: MetaFeatures) -> None:
         """Write meta_features row."""
@@ -46,8 +74,15 @@ class FeatureMatrixWriter:
                 volume_group_score, volatility_group_score,
                 structure_group_score, context_group_score,
                 expert_conflict_score, expert_alignment_score,
-                regime_score
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                regime_score,
+                trend_alignment_score, trend_strength_max,
+                ma_alignment_pct, trend_persistence_avg,
+                momentum_divergence_count, overbought_count, oversold_count,
+                volume_pressure, liquidity_shock_avg, climax_volume_count,
+                compression_count,
+                bull_bear_ratio, sector_momentum,
+                breakout_count
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 meta.symbol, meta.date, meta.snapshot_time,
                 meta.bullish_expert_count, meta.bearish_expert_count,
@@ -62,6 +97,20 @@ class FeatureMatrixWriter:
                 round(meta.expert_conflict_score, 6),
                 round(meta.expert_alignment_score, 6),
                 round(meta.regime_score, 6),
+                round(meta.trend_alignment_score, 6),
+                round(meta.trend_strength_max, 6),
+                round(meta.ma_alignment_pct, 6),
+                round(meta.trend_persistence_avg, 6),
+                meta.momentum_divergence_count,
+                meta.overbought_count,
+                meta.oversold_count,
+                round(meta.volume_pressure, 6),
+                round(meta.liquidity_shock_avg, 6),
+                meta.climax_volume_count,
+                meta.compression_count,
+                round(meta.bull_bear_ratio, 6),
+                round(meta.sector_momentum, 6),
+                meta.breakout_count,
             ),
         )
 
@@ -155,7 +204,7 @@ class FeatureMatrixWriter:
     ) -> dict | None:
         """
         Get the complete feature vector for R Layer input.
-        Returns dict with 34 features (20 norm scores + 11 meta + 3 regime).
+        Returns dict with 48 features (20 norm scores + 25 meta + 3 regime).
         """
         meta = self.meta_builder.build(symbol, date)
         if meta.expert_count == 0:
@@ -179,6 +228,22 @@ class FeatureMatrixWriter:
         vector["expert_alignment_score"] = round(meta.expert_alignment_score, 6)
         vector["bullish_count"] = meta.bullish_expert_count
         vector["bearish_count"] = meta.bearish_expert_count
+
+        # 14 new meta features
+        vector["trend_alignment_score"] = round(meta.trend_alignment_score, 6)
+        vector["trend_strength_max"] = round(meta.trend_strength_max, 6)
+        vector["ma_alignment_pct"] = round(meta.ma_alignment_pct, 6)
+        vector["trend_persistence_avg"] = round(meta.trend_persistence_avg, 6)
+        vector["momentum_divergence_count"] = meta.momentum_divergence_count
+        vector["overbought_count"] = meta.overbought_count
+        vector["oversold_count"] = meta.oversold_count
+        vector["volume_pressure"] = round(meta.volume_pressure, 6)
+        vector["liquidity_shock_avg"] = round(meta.liquidity_shock_avg, 6)
+        vector["climax_volume_count"] = meta.climax_volume_count
+        vector["compression_count"] = meta.compression_count
+        vector["bull_bear_ratio"] = round(meta.bull_bear_ratio, 6)
+        vector["sector_momentum"] = round(meta.sector_momentum, 6)
+        vector["breakout_count"] = meta.breakout_count
 
         # 3 regime scores (from market.db)
         conn = sqlite3.connect(self.market_db)

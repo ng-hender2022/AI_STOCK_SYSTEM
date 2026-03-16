@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from AI_engine.x1.decision_engine import DecisionEngine, Decision
 from AI_engine.x1.position_sizer import PositionSizer, PositionSize
+from AI_engine.x1.symbol_evaluator import SymbolEvaluator, SymbolEvaluation, _precision_multiplier
 from AI_engine.x1.risk_manager import RiskManager, RiskCheck
 from AI_engine.x1.portfolio_engine import PortfolioEngine, Portfolio
 from AI_engine.x1.output_writer import OutputWriter
@@ -332,6 +333,49 @@ class TestOutputWriter:
         count = conn.execute("SELECT COUNT(*) FROM x1_decisions WHERE date='2025-01-15'").fetchone()[0]
         conn.close()
         assert count == len(portfolio.entries)
+
+
+# ---------------------------------------------------------------------------
+# Precision Multiplier Tests
+# ---------------------------------------------------------------------------
+
+class TestPrecisionMultiplier:
+
+    def test_high_precision(self):
+        assert _precision_multiplier(0.80) == 1.2
+
+    def test_good_precision(self):
+        assert _precision_multiplier(0.65) == 1.0
+
+    def test_moderate_precision(self):
+        assert _precision_multiplier(0.55) == 0.85
+
+    def test_low_precision(self):
+        assert _precision_multiplier(0.40) == 0.70
+
+    def test_boundary_75(self):
+        assert _precision_multiplier(0.75) == 1.2
+
+    def test_boundary_60(self):
+        assert _precision_multiplier(0.60) == 1.0
+
+    def test_boundary_50(self):
+        assert _precision_multiplier(0.50) == 0.85
+
+    def test_zero(self):
+        assert _precision_multiplier(0.0) == 0.70
+
+    def test_no_hard_avoid(self):
+        """High vol symbols get soft penalty, not blocked."""
+        ev = SymbolEvaluation(
+            symbol="TEST", date="2025-01-15",
+            volatility_20d=0.06,  # extreme vol
+            has_sufficient_data=True,
+        )
+        route, reason, mult = SymbolEvaluator._route(ev)
+        assert route == "NORMAL"  # not AVOID
+        assert mult == 0.5  # soft penalty
+        assert mult > 0  # not blocked
 
 
 if __name__ == "__main__":

@@ -80,6 +80,33 @@ class MetaFeatures:
     # Count of experts that contributed
     expert_count: int = 0
 
+    # --- NEW: Expanded meta features (14 new) ---
+    # Trend context
+    trend_alignment_score: float = 0.0  # % of trend experts bullish (0..1)
+    trend_strength_max: float = 0.0     # max abs of trend norms
+    ma_alignment_pct: float = 0.0       # from V4MA metadata
+    trend_persistence_avg: float = 0.0  # from V4P metadata
+
+    # Momentum context
+    momentum_divergence_count: int = 0  # count divergence flags
+    overbought_count: int = 0           # experts in OB zone
+    oversold_count: int = 0             # experts in OS zone
+
+    # Volume context
+    volume_pressure: float = 0.0        # V4V vol_ratio
+    liquidity_shock_avg: float = 0.0    # from V4LIQ
+    climax_volume_count: int = 0        # count climax flags
+
+    # Volatility context
+    compression_count: int = 0          # count squeeze/compression flags
+
+    # Market strength
+    bull_bear_ratio: float = 0.5        # bullish / (bullish + bearish)
+    sector_momentum: float = 0.0        # from V4S metadata
+
+    # Price structure
+    breakout_count: int = 0             # count breakout flags
+
 
 class MetaBuilder:
     """
@@ -197,6 +224,100 @@ class MetaBuilder:
 
         # Regime
         meta.regime_score = self._fetch_regime(date)
+
+        # --- Compute 14 new expanded meta features ---
+        # Fetch metadata_json for all experts
+        conn2 = self._connect_signals()
+        try:
+            sig_rows = conn2.execute(
+                """SELECT expert_id, metadata_json FROM expert_signals
+                   WHERE symbol=? AND date=? AND snapshot_time='EOD'""",
+                (symbol, date),
+            ).fetchall()
+        finally:
+            conn2.close()
+
+        metadata_map = {}
+        for sr in sig_rows:
+            if sr["metadata_json"]:
+                try:
+                    metadata_map[sr["expert_id"]] = json.loads(sr["metadata_json"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        # Trend context
+        trend_ids = EXPERT_GROUPS["TREND"]
+        trend_norms = [norms[eid] for eid in trend_ids if eid in norms]
+        if trend_norms:
+            meta.trend_alignment_score = sum(1 for v in trend_norms if v > 0.05) / len(trend_norms)
+            meta.trend_strength_max = max(abs(v) for v in trend_norms)
+        ma_meta = metadata_map.get("V4MA", {})
+        meta.ma_alignment_pct = float(ma_meta.get("alignment_score", 0.0)) / 3.0  # normalize -3..+3 to ~0..1
+        p_meta = metadata_map.get("V4P", {})
+        meta.trend_persistence_avg = float(p_meta.get("trend_persistence", 0.5))
+
+        # Momentum context
+        mom_ids = EXPERT_GROUPS["MOMENTUM"]
+        rsi_meta = metadata_map.get("V4RSI", {})
+        macd_meta = metadata_map.get("V4MACD", {})
+        sto_meta = metadata_map.get("V4STO", {})
+        div_count = 0
+        for m in [rsi_meta, macd_meta, sto_meta]:
+            if m.get("divergence_flag", 0) != 0:
+                div_count += 1
+        if sto_meta.get("stoch_divergence", 0) != 0 and not sto_meta.get("divergence_flag"):
+            div_count += 1
+        meta.momentum_divergence_count = div_count
+
+        ob_count = 0
+        os_count = 0
+        if rsi_meta.get("rsi_zone", 0) >= 1:
+            ob_count += 1
+        if rsi_meta.get("rsi_zone", 0) <= -1:
+            os_count += 1
+        if float(sto_meta.get("stoch_k", 0.5)) > 0.8:
+            ob_count += 1
+        if float(sto_meta.get("stoch_k", 0.5)) < 0.2:
+            os_count += 1
+        meta.overbought_count = ob_count
+        meta.oversold_count = os_count
+
+        # Volume context
+        v_meta = metadata_map.get("V4V", {})
+        meta.volume_pressure = float(v_meta.get("vol_ratio", 1.0))
+        liq_meta = metadata_map.get("V4LIQ", {})
+        meta.liquidity_shock_avg = float(liq_meta.get("liquidity_shock", liq_meta.get("adtv_ratio", 1.0)))
+        climax = 0
+        if v_meta.get("vol_climax", False):
+            climax += 1
+        meta.climax_volume_count = climax
+
+        # Volatility context
+        atr_meta = metadata_map.get("V4ATR", {})
+        bb_meta = metadata_map.get("V4BB", {})
+        comp = 0
+        if float(atr_meta.get("volatility_compression", 1.0)) < 0.5:
+            comp += 1
+        if bb_meta.get("bb_squeeze_active", False):
+            comp += 1
+        meta.compression_count = comp
+
+        # Market strength
+        total_dir = meta.bullish_expert_count + meta.bearish_expert_count
+        meta.bull_bear_ratio = meta.bullish_expert_count / total_dir if total_dir > 0 else 0.5
+        s_meta = metadata_map.get("V4S", {})
+        meta.sector_momentum = float(s_meta.get("sector_momentum", 0.0))
+
+        # Price structure
+        bcount = 0
+        if p_meta.get("breakout_flag", False):
+            bcount += 1
+        if p_meta.get("breakout60_flag", False):
+            bcount += 1
+        sr_meta = metadata_map.get("V4SR", {})
+        if sr_meta.get("breakout_above_resistance", False):
+            bcount += 1
+        meta.breakout_count = bcount
 
         return meta
 

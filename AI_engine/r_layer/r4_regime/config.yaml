@@ -3,19 +3,26 @@ model_name: Regime Model (LightGBM Multiclass)
 model_type: classification_multiclass
 default_horizon: 20
 regime_bins:
-  # VNINDEX T+20 return -> regime class
-  -4: -0.08   # < -8%
-  -3: -0.05   # -8% to -5%
-  -2: -0.03   # -5% to -3%
-  -1: -0.01   # -3% to -1%
-  0: 0.01     # -1% to +1%
-  1: 0.03     # +1% to +3%
-  2: 0.05     # +3% to +5%
-  3: 0.08     # +5% to +8%
-  4: 1.0      # > +8%
+  -4: -0.08
+  -3: -0.05
+  -2: -0.03
+  -1: -0.01
+  0: 0.01
+  1: 0.03
+  2: 0.05
+  3: 0.08
+  4: 1.0
 hyperparams:
   n_estimators: 200
   max_depth: 5
   learning_rate: 0.05
   num_leaves: 31
   verbose: -1
+
+# Signal filters (tightened)
+signal_filters:
+  buy_threshold: 2.0       # only emit BUY when regime >= +2
+  sell_threshold: -2.0     # only emit SELL when regime <= -2
+  min_confidence: 0.65     # dampen below this
+  weak_dampen: 0.5         # multiply weak signals (between thresholds)
+  low_conf_dampen: 0.3     # multiply low-confidence signals

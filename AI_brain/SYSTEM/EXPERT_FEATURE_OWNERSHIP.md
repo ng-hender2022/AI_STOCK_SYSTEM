@@ -1,6 +1,6 @@
 # EXPERT FEATURE OWNERSHIP
 
-Version: 1.0
+Version: 2.0
 Date: 2026-03-16
 Status: ACTIVE
 
@@ -11,167 +11,416 @@ Status: ACTIVE
 Maps every feature to its owning expert.
 R Layer and Meta Layer use this to know which expert produces which features.
 
+Each expert stores its full output in `metadata_json`. The sub-features listed
+below are the columns extracted from `metadata_json` into the feature matrix
+(defined by `SUB_FEATURE_MAP` in `base_model.py`).
+
 ---
 
-## V4REG — Market Regime Expert
+## V4RSI — Relative Strength Index Expert
 
-| Feature | Type | Range |
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
 |---|---|---|
-| trend_regime_score | float | -4..+4 |
-| trend_regime_score_raw | float | -4..+4 |
-| vol_regime_score | float | 0..4 |
-| liquidity_regime_score | float | -2..+2 |
-| regime_label | str | STRONG_BEAR..STRONG_BULL |
-| regime_confidence | float | 0..1 |
-| trend_structure_score | float | -2..+2 |
-| breadth_score | float | -2..+2 |
-| momentum_score | float | -2..+2 |
-| drawdown_stress_score | float | -2..0 |
+| v4rsi_norm | float | -1..+1 |
+| v4rsi_slope | float | unbounded |
+| v4rsi_divergence_flag | int | -1/0/+1 |
+| v4rsi_center_cross_flag | int | -1/0/+1 |
 
-**Total: 10 features**
+**Metadata extras:** centerline_cross (int, -1/0/+1)
+
+**Sub-features extracted: 4**
+
+---
+
+## V4MACD — MACD Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4macd_norm | float | -1..+1 |
+| v4macd_hist_slope | float | unbounded |
+| v4macd_cross_flag | int | -1/0/+1 |
+| v4macd_divergence_flag | int | -1/0/+1 |
+
+**Metadata extras:** macd_cross_flag (int, -1/0/+1)
+
+**Sub-features extracted: 4**
+
+---
+
+## V4BB — Bollinger Bands Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4bb_norm | float | -1..+1 |
+| v4bb_width | float | 0..+inf |
+| v4bb_position | float | 0..1 |
+| v4bb_squeeze_flag | int | 0/1 |
+| v4bb_band_walk_flag | int | 0/1 |
+
+**Sub-features extracted: 5**
+
+---
+
+## V4V — Volume Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4v_norm | float | -1..+1 |
+| v4v_volume_ratio_20 | float | 0..+inf |
+| v4v_volume_trend | float | unbounded |
+| v4v_climax_volume_flag | int | 0/1 |
+| v4v_drying_volume_flag | int | 0/1 |
+| v4v_expansion_flag | int | 0/1 |
+
+**Sub-features extracted: 6**
+
+---
+
+## V4P — Price Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4p_norm | float | -1..+1 |
+| v4p_ret_1d | float | unbounded |
+| v4p_ret_5d | float | unbounded |
+| v4p_ret_10d | float | unbounded |
+| v4p_ret_20d | float | unbounded |
+| v4p_breakout20_flag | int | 0/1 |
+| v4p_breakout60_flag | int | 0/1 |
+| v4p_range_position | float | 0..1 |
+| v4p_gap_ret | float | unbounded |
+| v4p_trend_persistence | float | 0..1 |
+
+**Metadata extras:** trend_persistence (float, 0..1), ret_1d/5d/10d/20d (float), gap_ret (float), breakout60_flag (int 0/1)
+
+**Sub-features extracted: 10**
 
 ---
 
 ## V4I — Ichimoku Expert
 
-| Feature | Type | Range |
-|---|---|---|
-| ichimoku_score | float | -4..+4 |
-| ichimoku_norm | float | -1..+1 |
-| cloud_position | str | above/inside/below |
-| cloud_position_score | float | -2/0/+2 |
-| tk_signal | str | bullish/bearish/neutral |
-| tk_signal_score | float | -1/0/+1 |
-| chikou_confirm | str | bullish/bearish/neutral |
-| chikou_confirm_score | float | -1/0/+1 |
-| future_cloud | str | bullish/bearish/flat |
-| future_cloud_score | float | -1/0/+1 |
-| time_resonance | float | 0..1 |
-| near_cycle | int | 0/9/17/26/33/42 |
-| days_since_pivot | int | 0+ |
-| signal_quality | int | 0..4 |
+**Status: BUILT**
 
-**Total: 14 features**
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4i_norm | float | -1..+1 |
+| v4i_cloud_position_score | float | -2/0/+2 |
+| v4i_tk_signal_score | float | -1/0/+1 |
+| v4i_chikou_confirm_score | float | -1/0/+1 |
+| v4i_future_cloud_score | float | -1/0/+1 |
+| v4i_time_resonance | float | 0..1 |
+
+**Sub-features extracted: 6**
 
 ---
 
 ## V4MA — Moving Average Expert
 
-| Feature | Type | Range |
-|---|---|---|
-| ma_score | float | -4..+4 |
-| ma_norm | float | -1..+1 |
-| alignment | str | all_bullish..all_bearish |
-| alignment_score | float | -3..+3 |
-| cross_signal | str | golden_cross/death_cross/short_cross_up/down/none |
-| cross_score | float | -1..+1 |
-| dist_ema10 | float | ratio |
-| dist_ema20 | float | ratio |
-| dist_ma50 | float | ratio |
-| dist_ma100 | float | ratio |
-| dist_ma200 | float | ratio |
-| ema10_slope | float | ratio |
-| ema20_slope | float | ratio |
-| ma50_slope | float | ratio |
-| ma100_slope | float | ratio |
-| ma200_slope | float | ratio |
-| ema10_over_ema20 | int | -1/+1 |
-| ma50_over_ma100 | int | -1/+1 |
-| ma100_over_ma200 | int | -1/+1 |
-| ma50_over_ma200 | int | -1/+1 |
-| golden_cross | bool | 0/1 |
-| death_cross | bool | 0/1 |
-| signal_quality | int | 0..4 |
+**Status: BUILT**
 
-**Total: 23 features**
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4ma_norm | float | -1..+1 |
+| v4ma_alignment_score | float | -3..+3 |
+| v4ma_slope_20 | float | ratio |
+| v4ma_slope_50 | float | ratio |
+| v4ma_slope_200 | float | ratio |
+| v4ma_golden_cross_flag | int | 0/1 |
+| v4ma_death_cross_flag | int | 0/1 |
+| v4ma_dist_ma20 | float | ratio |
+| v4ma_dist_ma50 | float | ratio |
+| v4ma_dist_ma100 | float | ratio |
+| v4ma_dist_ma200 | float | ratio |
+
+**Sub-features extracted: 11**
+
+---
+
+## V4ADX — Average Directional Index Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4adx_norm | float | -1..+1 |
+| v4adx_value | float | 0..100 |
+| v4adx_di_plus | float | 0..100 |
+| v4adx_di_minus | float | 0..100 |
+| v4adx_di_spread | float | -100..+100 |
+
+**Sub-features extracted: 5**
+
+---
+
+## V4STO — Stochastic Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4sto_norm | float | -1..+1 |
+| v4sto_k | float | 0..100 |
+| v4sto_d | float | 0..100 |
+| v4sto_cross_flag | int | -1/0/+1 |
+| v4sto_divergence_flag | int | -1/0/+1 |
+
+**Sub-features extracted: 5**
+
+---
+
+## V4OBV — On-Balance Volume Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4obv_norm | float | -1..+1 |
+| v4obv_slope | float | unbounded |
+| v4obv_divergence_flag | int | -1/0/+1 |
+| v4obv_breakout_flag | int | 0/1 |
+
+**Sub-features extracted: 4**
+
+---
+
+## V4ATR — Average True Range Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4atr_norm | float | -1..+1 |
+| v4atr_pct | float | 0..+inf |
+| v4atr_percentile | float | 0..1 |
+| v4atr_vol_compression | float | 0..+inf |
+| v4atr_expanding_flag | int | 0/1 |
+
+**Metadata extras:** volatility_compression (float, 0..+inf, ratio of 5d/20d return std)
+
+**Sub-features extracted: 5**
+
+---
+
+## V4CANDLE — Candlestick Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4candle_norm | float | -1..+1 |
+| v4candle_body_pct | float | 0..1 |
+| v4candle_upper_wick_pct | float | 0..1 |
+| v4candle_lower_wick_pct | float | 0..1 |
+| v4candle_volume_confirm | float | 0..+inf |
+
+**Sub-features extracted: 5**
+
+---
+
+## V4BR — Breadth Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4br_norm | float | -1..+1 |
+| v4br_pct_above_ma50 | float | 0..1 |
+| v4br_ad_ratio | float | unbounded |
+| v4br_new_high_low_ratio | float | unbounded |
+| v4br_pos_divergence | int | 0/1 |
+| v4br_neg_divergence | int | 0/1 |
+
+**Sub-features extracted: 6**
+
+---
+
+## V4RS — Relative Strength Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4rs_norm | float | -1..+1 |
+| v4rs_5d | float | unbounded |
+| v4rs_20d | float | unbounded |
+| v4rs_acceleration | float | unbounded |
+| v4rs_rank | float | 0..1 |
+
+**Sub-features extracted: 5**
+
+---
+
+## V4REG — Market Regime Expert
+
+**Status: BUILT**
+
+Features stored in `market_regime` table (market-wide, same for all symbols on a given date).
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| regime_trend | float | -4..+4 |
+| regime_vol | float | 0..4 |
+| regime_liq | float | -2..+2 |
+
+**Sub-features extracted: 3**
+
+---
+
+## V4S — Sector Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4s_norm | float | -1..+1 |
+| v4s_sector_ret_20d | float | unbounded |
+| v4s_sector_rank | float | 0..1 |
+| v4s_sector_vs_market | float | unbounded |
+| v4s_sector_momentum | float | unbounded |
+
+**Sub-features extracted: 5**
+
+---
+
+## V4LIQ — Liquidity Expert
+
+**Status: BUILT**
+
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4liq_norm | float | -1..+1 |
+| v4liq_avg_vol_20 | float | 0..+inf |
+| v4liq_turnover_ratio | float | 0..+inf |
+| v4liq_liquidity_shock | float | 0..+inf |
+
+**Metadata extras:** liquidity_shock (float, ratio of today value / ADTV20)
+
+**Sub-features extracted: 4**
 
 ---
 
 ## V4PIVOT — Pivot Point Expert
 
-| Feature | Type | Range |
-|---|---|---|
-| pivot_score | float | -4..+4 |
-| pivot_norm | float | -1..+1 |
-| position_score | float | -2..+2 |
-| confluence_score | float | -1..+1 |
-| alignment_score | float | -1..+1 |
-| daily_pivot | float | price level |
-| weekly_pivot | float | price level |
-| monthly_pivot | float | price level |
-| signal_quality | int | 0..4 |
+**Status: BUILT**
 
-**Total: 9 features**
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4pivot_norm | float | -1..+1 |
+| v4pivot_confluence_score | float | -1..+1 |
+| v4pivot_position_score | float | -2..+2 |
+| v4pivot_alignment_score | float | -1..+1 |
+
+**Sub-features extracted: 4**
 
 ---
 
 ## V4SR — Support/Resistance Expert
 
-| Feature | Type | Range |
-|---|---|---|
-| sr_score | float | -4..+4 |
-| sr_norm | float | -1..+1 |
-| position_score | float | -2..+2 |
-| strength_score | float | -1..+1 |
-| context_score | float | -1..+1 |
-| dist_nearest_support | float | ratio |
-| dist_nearest_resistance | float | ratio |
-| nearest_support_strength | float | 0..10 |
-| nearest_resistance_strength | float | 0..10 |
-| polarity_active | int | 0/1 |
-| signal_quality | int | 0..4 |
+**Status: BUILT**
 
-**Total: 11 features**
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4sr_norm | float | -1..+1 |
+| v4sr_dist_support | float | ratio |
+| v4sr_dist_resistance | float | ratio |
+| v4sr_strength | float | 0..10 |
+| v4sr_breakout_flag | int | 0/1 |
+
+**Sub-features extracted: 5**
 
 ---
 
 ## V4TREND_PATTERN — Trend Pattern Expert
 
-| Feature | Type | Range |
-|---|---|---|
-| pattern_score | float | -4..+4 |
-| pattern_norm | float | -1..+1 |
-| pattern_type | str | flag/pennant/triangle/hs/double/rounding/none |
-| pattern_direction | str | bullish/bearish/neutral |
-| confirmation_score | float | -1..+1 |
-| target_score | float | -1..+1 |
-| target_distance_pct | float | ratio |
-| pattern_duration | int | bars |
-| breakout_volume_ratio | float | ratio |
-| pattern_failure | int | 0/1 |
-| signal_quality | int | 0..4 |
+**Status: BUILT**
 
-**Total: 11 features**
+| Sub-Feature (matrix column) | Type | Range |
+|---|---|---|
+| v4tp_norm | float | -1..+1 |
+| v4tp_breakout_confirmed | int | 0/1 |
+| v4tp_pattern_completion | float | 0..1 |
+| v4tp_breakout_vol_ratio | float | 0..+inf |
+| v4tp_pattern_failure | int | 0/1 |
+
+**Sub-features extracted: 5**
+
+---
+
+## META FEATURES (25)
+
+Computed by the Meta Layer from expert sub-features. Not owned by any single expert.
+
+| Meta Feature | Type | Range |
+|---|---|---|
+| avg_score | float | -1..+1 |
+| trend_group_score | float | -1..+1 |
+| momentum_group_score | float | -1..+1 |
+| volume_group_score | float | -1..+1 |
+| volatility_group_score | float | -1..+1 |
+| structure_group_score | float | -1..+1 |
+| context_group_score | float | -1..+1 |
+| expert_conflict_score | float | 0..1 |
+| expert_alignment_score | float | 0..1 |
+| bullish_count | int | 0..20 |
+| bearish_count | int | 0..20 |
+| trend_alignment_score | float | -1..+1 |
+| trend_strength_max | float | 0..1 |
+| ma_alignment_pct | float | 0..1 |
+| trend_persistence_avg | float | 0..1 |
+| momentum_divergence_count | int | 0..20 |
+| overbought_count | int | 0..20 |
+| oversold_count | int | 0..20 |
+| volume_pressure | float | unbounded |
+| liquidity_shock_avg | float | 0..+inf |
+| climax_volume_count | int | 0..20 |
+| compression_count | int | 0..20 |
+| bull_bear_ratio | float | 0..+inf |
+| sector_momentum | float | unbounded |
+| breakout_count | int | 0..20 |
+
+**Total meta features: 25**
 
 ---
 
 ## SUMMARY
 
-| Expert | Feature Count | Status |
+| Expert | Sub-Features Extracted | Status |
 |---|---|---|
-| V4REG | 10 | BUILT |
-| V4I | 14 | BUILT |
-| V4MA | 23 | BUILT |
-| V4ADX | — | NOT STARTED |
-| V4MACD | — | NOT STARTED |
-| V4RSI | — | NOT STARTED |
-| V4STO | — | NOT STARTED |
-| V4V | — | NOT STARTED |
-| V4OBV | — | NOT STARTED |
-| V4ATR | — | NOT STARTED |
-| V4BB | — | NOT STARTED |
-| V4P | — | NOT STARTED |
-| V4CANDLE | — | NOT STARTED |
-| V4BR | — | NOT STARTED |
-| V4RS | — | NOT STARTED |
-| V4S | — | NOT STARTED |
-| V4LIQ | — | NOT STARTED |
-| V4PIVOT | 9 | NOT STARTED |
-| V4SR | 11 | NOT STARTED |
-| V4TREND_PATTERN | 11 | NOT STARTED |
-
-**Total features (built): 47**
-**Total features (planned): 78**
+| V4RSI | 4 | BUILT |
+| V4MACD | 4 | BUILT |
+| V4BB | 5 | BUILT |
+| V4V | 6 | BUILT |
+| V4P | 10 | BUILT |
+| V4I | 6 | BUILT |
+| V4MA | 11 | BUILT |
+| V4ADX | 5 | BUILT |
+| V4STO | 5 | BUILT |
+| V4OBV | 4 | BUILT |
+| V4ATR | 5 | BUILT |
+| V4CANDLE | 5 | BUILT |
+| V4BR | 6 | BUILT |
+| V4RS | 5 | BUILT |
+| V4REG | 3 | BUILT |
+| V4S | 5 | BUILT |
+| V4LIQ | 4 | BUILT |
+| V4PIVOT | 4 | BUILT |
+| V4SR | 5 | BUILT |
+| V4TREND_PATTERN | 5 | BUILT |
+| **Norms (1 per expert)** | **20** | |
+| **Sub-features (non-norm)** | **85** | |
+| **Meta features** | **25** | |
+| **Regime features** | **3** | |
+| **TOTAL** | **133** | |
 
 ---
 

@@ -57,6 +57,7 @@ class ATRFeatures:
     # --- Score ---
     atr_score: int = 0             # 0..4
     atr_norm: float = 0.0         # atr_score / 4
+    volatility_compression: float = 1.0  # rolling_std(returns, 5) / rolling_std(returns, 20)
 
     # --- Volatility regime ---
     vol_regime: str = "NORMAL"     # SQUEEZE / NORMAL / EXPANSION / CLIMAX
@@ -257,3 +258,12 @@ class ATRFeatureBuilder:
         # --- Price return (for direction determination) ---
         if len(closes) >= 2 and closes[-2] > 0:
             feat.price_return = float((closes[-1] - closes[-2]) / closes[-2])
+
+        # Volatility compression = rolling_std(returns, 5) / rolling_std(returns, 20)
+        if n >= 21:
+            returns = np.diff(closes) / closes[:-1]
+            if len(returns) >= 20:
+                std_5 = float(np.std(returns[-5:], ddof=0))
+                std_20 = float(np.std(returns[-20:], ddof=0))
+                if std_20 > 1e-12:
+                    feat.volatility_compression = std_5 / std_20

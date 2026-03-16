@@ -50,7 +50,7 @@ class RSIExpertWriter:
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 
-    def _write_output(self, conn: sqlite3.Connection, output: RSIOutput) -> None:
+    def _write_output(self, conn: sqlite3.Connection, output: RSIOutput, features=None) -> None:
         metadata = {
             "rsi_value": round(output.rsi_value, 4),
             "rsi_norm": round(output.rsi_norm, 4),
@@ -61,6 +61,7 @@ class RSIExpertWriter:
             "divergence_flag": output.divergence_flag,
             "failure_swing_flag": output.failure_swing_flag,
             "signal_quality": output.signal_quality,
+            "centerline_cross": features.centerline_cross if features is not None else 0,
         }
 
         conn.execute(
@@ -83,7 +84,7 @@ class RSIExpertWriter:
         conn = self._connect_signals()
         try:
             if output.has_sufficient_data:
-                self._write_output(conn, output)
+                self._write_output(conn, output, features)
             conn.commit()
         finally:
             conn.close()
@@ -101,7 +102,7 @@ class RSIExpertWriter:
             for feat in features_list:
                 output = self.signal_logic.compute(feat)
                 if output.has_sufficient_data:
-                    self._write_output(conn, output)
+                    self._write_output(conn, output, feat)
                 results.append(output)
             conn.commit()
         finally:

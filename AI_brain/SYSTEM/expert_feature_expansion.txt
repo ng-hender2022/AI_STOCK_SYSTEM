@@ -1,0 +1,339 @@
+================================================================
+EXPERT FEATURE EXPANSION PLAN
+Generated: 2026-03-16
+Current features: 34
+Planned features: 118
+================================================================
+
+EXPERT: V4I (Ichimoku)
+Rulebook: ICHIMOKU_RULEBOOK_FOR_AI.md
+Current output:
+  - ichimoku_score (-4..+4) → ichimoku_norm = score/4
+New sub-features:
+  - cloud_thickness      : (span_a - span_b) / close
+  - chikou_distance      : (chikou - price_26) / close
+  - tk_spread            : (tenkan - kijun) / close
+  - equilibrium_stretch  : (close - kijun) / close
+  - time_resonance_score : 0..1 (near cycles 9/26/52)
+  - future_cloud_strength: (span_a_future - span_b_future) / close
+Total: 1 → 7 (+6)
+----------------------------------------------------------------
+
+EXPERT: V4MA (Moving Average)
+Rulebook: MA_RULEBOOK
+Current output:
+  - ma_score (-4..+4) → ma_norm = score/4
+New sub-features:
+  - ma_alignment_score   : % of MAs aligned bullish (0..1)
+  - ma_slope_20          : slope of MA20 (5d change / MA20)
+  - ma_slope_50          : slope of MA50
+  - ma_slope_200         : slope of MA200
+  - golden_cross_flag    : 1 if MA50 crossed above MA200 recently
+  - death_cross_flag     : 1 if MA50 crossed below MA200 recently
+  - dist_ma20            : (close - MA20) / MA20
+  - dist_ma50            : (close - MA50) / MA50
+  - dist_ma100           : (close - MA100) / MA100
+  - dist_ma200           : (close - MA200) / MA200
+Total: 1 → 11 (+10)
+----------------------------------------------------------------
+
+EXPERT: V4ADX (Trend Strength)
+Rulebook: ADX_RULEBOOK
+Current output:
+  - adx_score (0..4) → adx_norm = score/4
+New sub-features:
+  - adx_value            : raw ADX value (0..100)
+  - di_plus              : +DI value normalized (0..1)
+  - di_minus             : -DI value normalized (0..1)
+  - di_spread            : (di_plus - di_minus) / 100
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4MACD (MACD)
+Rulebook: MACD_RULEBOOK
+Current output:
+  - macd_score (-4..+4) → macd_norm = score/4
+New sub-features:
+  - macd_hist_slope      : slope of MACD histogram (5d)
+  - macd_cross_flag      : 1 if bullish cross, -1 bearish, 0 none
+  - zero_line_cross_flag : 1 if crossed above zero, -1 below, 0 none
+  - divergence_flag      : 1 bullish divergence, -1 bearish, 0 none
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4RSI (RSI)
+Rulebook: RSI_RULEBOOK
+Current output:
+  - rsi_score (0..100) → rsi_norm = (rsi - 50) / 50
+New sub-features:
+  - rsi_slope            : slope of RSI (5d change)
+  - rsi_divergence_flag  : 1 bullish, -1 bearish, 0 none
+  - center_cross_flag    : 1 if RSI crossed above 50, -1 below, 0 none
+Total: 1 → 4 (+3)
+----------------------------------------------------------------
+
+EXPERT: V4STO (Stochastic)
+Rulebook: STOCHASTIC_RULEBOOK
+Current output:
+  - sto_score (0..100) → sto_norm = (sto - 50) / 50
+New sub-features:
+  - stoch_k              : %K value normalized (0..1)
+  - stoch_d              : %D value normalized (0..1)
+  - stoch_cross_flag     : 1 bullish cross, -1 bearish, 0 none
+  - hinge_pattern_flag   : 1 if hinge detected (reversal warning)
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4V (Volume Behavior)
+Rulebook: VOLUME_RULEBOOK
+Current output:
+  - volume_score (-4..+4) → volume_norm = score/4
+New sub-features:
+  - volume_ratio_5       : volume / MA5_volume
+  - volume_ratio_20      : volume / MA20_volume
+  - volume_trend         : slope of volume MA10 (5d)
+  - climax_volume_flag   : 1 if volume > 3x MA20 with price reversal
+  - drying_volume_flag   : 1 if volume < 0.3x MA20 (drying up)
+Total: 1 → 6 (+5)
+----------------------------------------------------------------
+
+EXPERT: V4OBV (OBV)
+Rulebook: OBV_RULEBOOK
+Current output:
+  - obv_score (-4..+4) → obv_norm = score/4
+New sub-features:
+  - obv_slope            : slope of OBV vs MA20_OBV (normalized)
+  - obv_divergence_flag  : 1 bullish div, -1 bearish div, 0 none
+  - obv_breakout_flag    : 1 if OBV broke above resistance
+Total: 1 → 4 (+3)
+----------------------------------------------------------------
+
+EXPERT: V4ATR (ATR Volatility)
+Rulebook: ATR_RULEBOOK
+Current output:
+  - atr_score (0..4) → atr_norm = score/4
+New sub-features:
+  - atr_pct              : ATR / close (raw %)
+  - atr_percentile       : percentile of ATR vs 252d history (0..1)
+  - range_expansion_flag : 1 if today range > 1.5x ATR14
+  - vol_regime_code      : 0=low, 1=normal, 2=elevated, 3=high, 4=extreme
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4BB (Bollinger Bands)
+Rulebook: BOLLINGER_RULEBOOK
+Current output:
+  - bb_score (-4..+4) → bb_norm = score/4
+New sub-features:
+  - bb_width             : (upper - lower) / middle (bandwidth)
+  - bb_position          : %B = (close - lower) / (upper - lower)
+  - bb_squeeze_flag      : 1 if bandwidth < 20th percentile (squeeze)
+  - band_walk_flag       : 1 upper band walk, -1 lower, 0 none
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4P (Price Action)
+Rulebook: PRICE_ACTION_RULEBOOK
+Current output:
+  - price_action_score (-4..+4) → price_action_norm = score/4
+New sub-features:
+  - ret_1d               : 1-day return
+  - ret_5d               : 5-day return
+  - ret_10d              : 10-day return
+  - ret_20d              : 20-day return
+  - breakout20_flag      : 1 if close > 20d high
+  - breakout60_flag      : 1 if close > 60d high
+  - rebound_score        : rebound strength from support (0..4)
+  - gap_ret              : gap return (open vs prev close) / prev close
+Total: 1 → 9 (+8)
+----------------------------------------------------------------
+
+EXPERT: V4CANDLE (Candlestick)
+Rulebook: CANDLE_RULEBOOK
+Current output:
+  - candle_score (-4..+4) → candle_norm = score/4
+New sub-features:
+  - body_pct             : |close - open| / (high - low) (0..1)
+  - upper_wick_pct       : (high - max(open,close)) / (high - low)
+  - lower_wick_pct       : (min(open,close) - low) / (high - low)
+  - candle_pattern_code  : 0=none, 1=doji, 2=hammer, 3=shooting_star,
+                           4=engulf_bull, 5=engulf_bear, 6=morning_star,
+                           7=evening_star, 8=harami_bull, 9=harami_bear,
+                           10=other
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4BR (Breadth)
+Rulebook: BREADTH_RULEBOOK
+Current output:
+  - breadth_score (-4..+4) → breadth_norm = score/4
+New sub-features:
+  - pct_above_ma50       : % of 91 stocks above MA50 (0..1)
+  - advance_decline_ratio: advancing / (advancing + declining) (0..1)
+  - new_high_low_ratio   : new_highs / (new_highs + new_lows) (0..1)
+  - breadth_thrust_flag  : 1 if Zweig breadth thrust detected
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4RS (Relative Strength)
+Rulebook: RS_RULEBOOK
+Current output:
+  - rs_score (-4..+4) → rs_norm = score/4
+New sub-features:
+  - rs_5d                : 5d return vs VNINDEX (alpha)
+  - rs_20d               : 20d return vs VNINDEX (alpha)
+  - rs_acceleration      : slope of rs_5d (5d change)
+  - rs_rank              : percentile rank vs universe (0..1)
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4REG (Market Regime)
+Rulebook: MARKET_REGIME_RULEBOOK
+Current output:
+  - trend_regime_score (-4..+4)
+  - vol_regime_score (0..4)
+  - liquidity_regime_score (-2..+2)
+New sub-features:
+  - trend_regime_raw     : unsmoothed trend regime score
+  - regime_confidence    : 0..1 (confidence of regime classification)
+  - regime_delta         : change from yesterday (-1, 0, +1)
+Total: 3 → 6 (+3)
+----------------------------------------------------------------
+
+EXPERT: V4S (Sector Strength)
+Rulebook: SECTOR_RULEBOOK
+Current output:
+  - sector_score (-4..+4) → sector_norm = score/4
+New sub-features:
+  - sector_ret_5d        : sector 5d return
+  - sector_ret_20d       : sector 20d return
+  - sector_rank          : rank among 14 sectors (1=best, 14=worst)
+  - sector_vs_market     : sector_ret_20d - VNINDEX_ret_20d (alpha)
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4LIQ (Liquidity)
+Rulebook: LIQUIDITY_RULEBOOK
+Current output:
+  - liq_score (-4..+4) → liq_norm = score/4
+New sub-features:
+  - avg_vol_20           : 20-day average volume (normalized by universe)
+  - turnover_value       : close × volume / universe_avg_turnover
+  - liq_percentile       : liquidity percentile vs universe (0..1)
+Total: 1 → 4 (+3)
+----------------------------------------------------------------
+
+EXPERT: V4PIVOT (Pivot Points)
+Rulebook: V4PIVOT_RULEBOOK
+Current output:
+  - pivot_score (-4..+4) → pivot_norm = score/4
+New sub-features:
+  - dist_to_r1           : (R1 - close) / close
+  - dist_to_s1           : (close - S1) / close
+  - confluence_score     : 0..1 (daily+weekly+monthly pivot alignment)
+  - pivot_bounce_flag    : 1 if bounce from S1/S2, -1 reject from R1/R2
+Total: 1 → 5 (+4)
+----------------------------------------------------------------
+
+EXPERT: V4SR (Support/Resistance)
+Rulebook: V4SR_RULEBOOK
+Current output:
+  - sr_score (-4..+4) → sr_norm = score/4
+New sub-features:
+  - sr_distance          : (close - nearest_sr) / close
+  - sr_strength          : touch count × recency weight (0..4)
+  - sr_breakout_flag     : 1 confirmed breakout, -1 breakdown, 0 none
+Total: 1 → 4 (+3)
+----------------------------------------------------------------
+
+EXPERT: V4TREND_PATTERN (Chart Patterns)
+Rulebook: V4TREND_PATTERN_RULEBOOK
+Current output:
+  - pattern_score (-4..+4) → pattern_norm = score/4
+New sub-features:
+  - pattern_type_code    : 0=none, 1=flag_bull, 2=flag_bear,
+                           3=triangle_asc, 4=triangle_desc,
+                           5=triangle_sym, 6=HS, 7=inv_HS,
+                           8=double_top, 9=double_bottom, 10=other
+  - breakout_confirmed   : 1 if breakout confirmed with volume
+  - pattern_completion   : 0..1 (how complete the pattern is)
+Total: 1 → 4 (+3)
+----------------------------------------------------------------
+
+================================================================
+SUMMARY TABLE
+================================================================
+Expert              | Current | Added | Total
+--------------------|---------|-------|------
+V4I  Ichimoku       |    1    |   6   |   7
+V4MA Moving Avg     |    1    |  10   |  11
+V4ADX Trend Str     |    1    |   4   |   5
+V4MACD              |    1    |   4   |   5
+V4RSI               |    1    |   3   |   4
+V4STO Stochastic    |    1    |   4   |   5
+V4V  Volume         |    1    |   5   |   6
+V4OBV               |    1    |   3   |   4
+V4ATR               |    1    |   4   |   5
+V4BB  Bollinger     |    1    |   4   |   5
+V4P  Price Action   |    1    |   8   |   9
+V4CANDLE            |    1    |   4   |   5
+V4BR  Breadth       |    1    |   4   |   5
+V4RS  Rel Strength  |    1    |   4   |   5
+V4REG Regime        |    3    |   3   |   6
+V4S  Sector         |    1    |   4   |   5
+V4LIQ Liquidity     |    1    |   3   |   4
+V4PIVOT             |    1    |   4   |   5
+V4SR  Support/Res   |    1    |   3   |   4
+V4TREND_PATTERN     |    1    |   3   |   4
+--------------------|---------|-------|------
+SUBTOTAL experts    |   20    |  87   | 107
+Meta aggregates     |   11    |   0   |  11
+Regime context      |    3    |   0   |   3  (already in V4REG)
+--------------------|---------|-------|------
+FEATURE MATRIX TOTAL|   34    |  87   | 118*
+================================================================
+
+* Note: Meta aggregates sẽ cần update để include group averages
+  của sub-features mới. Có thể tăng thêm 10-20 meta features nữa.
+
+================================================================
+IMPLEMENTATION ORDER
+================================================================
+Priority 1 (most impactful, easy to implement):
+  V4RSI    : rsi_slope, divergence, center_cross
+  V4MACD   : hist_slope, cross_flag, divergence
+  V4BB     : bb_width, bb_position, squeeze_flag
+  V4V      : volume_ratio_5, volume_ratio_20, climax_flag
+  V4P      : ret_1d..ret_20d, breakout_flags, gap_ret
+
+Priority 2 (moderate complexity):
+  V4I      : cloud_thickness, tk_spread, time_resonance
+  V4MA     : ma_slopes, cross_flags, distances
+  V4ATR    : atr_pct, percentile, vol_regime_code
+  V4BR     : pct_above_ma50, ad_ratio, thrust_flag
+  V4RS     : rs_5d, rs_20d, acceleration, rank
+
+Priority 3 (complex):
+  V4CANDLE : pattern_code detection
+  V4TREND_PATTERN: pattern_type, completion
+  V4PIVOT  : confluence scoring
+  V4SR     : sr_strength calculation
+
+================================================================
+ANTI-OVERLAP VERIFICATION
+================================================================
+Features confirmed NON-overlapping:
+- ret_1d..ret_20d       → V4P only
+- volume_ratio_5/20     → V4V only (V4OBV uses cumulative OBV)
+- rsi_slope             → V4RSI only
+- macd_hist_slope       → V4MACD only
+- bb_width/position     → V4BB only (V4ATR uses ATR, not BB)
+- pct_above_ma50        → V4BR only (V4MA uses individual stock MA)
+- rs_5d/rs_20d          → V4RS only (V4P uses absolute returns)
+- sector_ret_5d/20d     → V4S only (V4RS uses vs index)
+- atr_pct               → V4ATR only (V4V uses volume, not ATR)
+- dist_ma20..ma200      → V4MA only (V4RS uses return comparison)
+
+================================================================
+END OF REPORT
+================================================================

@@ -49,7 +49,7 @@ class PortfolioEngine:
         self.decision_engine = DecisionEngine(models_db, market_db)
         self.position_sizer = PositionSizer()
         self.risk_manager = RiskManager()
-        self.symbol_evaluator = SymbolEvaluator(market_db)
+        self.symbol_evaluator = SymbolEvaluator(market_db, models_db)
         self.market_db = market_db
 
     def _get_regime(self, date: str) -> dict:
@@ -78,19 +78,10 @@ class PortfolioEngine:
         for dec in decisions:
             ev = eval_map.get(dec.symbol)
             route = ev.route if ev else "NORMAL"
-            pos_mult = ev.position_multiplier if ev else 1.0
-
-            # AVOID route: force HOLD
-            if route == "AVOID" and dec.action == "BUY":
-                portfolio.total_hold_count += 1
-                portfolio.entries.append(PortfolioEntry(
-                    symbol=dec.symbol, date=date, action="HOLD",
-                    weight=0.0, score=dec.score, confidence=dec.confidence,
-                    strength=dec.strength,
-                    reason=f"Symbol AVOID: {ev.route_reason if ev else 'no eval'}",
-                    risk_passed=False, route=route, position_multiplier=0.0,
-                ))
-                continue
+            trend_mult = ev.position_multiplier if ev else 1.0
+            prec_mult = ev.precision_multiplier if ev else 1.0
+            # Combined: trend routing * precision-based sizing
+            pos_mult = trend_mult * prec_mult
 
             if dec.action == "HOLD":
                 portfolio.total_hold_count += 1

@@ -130,6 +130,15 @@ class PAFeatures:
     breakout_flag: bool = False   # close > high20
     breakdown_flag: bool = False  # close < low20
 
+    # New expansion features
+    trend_persistence: float = 0.5  # up_days_last_10 / 10
+    ret_1d: float = 0.0
+    ret_5d: float = 0.0
+    ret_10d: float = 0.0
+    ret_20d: float = 0.0
+    gap_ret: float = 0.0
+    breakout60_flag: bool = False
+
     has_sufficient_data: bool = False
 
 
@@ -285,3 +294,29 @@ class PAFeatureBuilder:
         # We use close > high20 with tiny tolerance for float comparison
         feat.breakout_flag = bool(feat.close >= feat.high20 - 1e-9)
         feat.breakdown_flag = bool(feat.close <= feat.low20 + 1e-9)
+
+        # --- Returns ---
+        if n >= 2 and closes[-2] > 0:
+            feat.ret_1d = float((closes[-1] - closes[-2]) / closes[-2])
+        if n >= 6 and closes[-6] > 0:
+            feat.ret_5d = float((closes[-1] - closes[-6]) / closes[-6])
+        if n >= 11 and closes[-11] > 0:
+            feat.ret_10d = float((closes[-1] - closes[-11]) / closes[-11])
+        if n >= 21 and closes[-21] > 0:
+            feat.ret_20d = float((closes[-1] - closes[-21]) / closes[-21])
+
+        # --- Gap return ---
+        opens = np.array([d["open"] for d in hist], dtype=float)
+        if n >= 2 and closes[-2] > 0:
+            feat.gap_ret = float((opens[-1] - closes[-2]) / closes[-2])
+
+        # --- Trend persistence ---
+        lookback_tp = min(10, n - 1)
+        if lookback_tp > 0:
+            up_days = sum(1 for i in range(n - lookback_tp, n) if closes[i] > closes[i - 1])
+            feat.trend_persistence = float(up_days / lookback_tp)
+
+        # --- Breakout 60d ---
+        if n >= 60:
+            high60 = float(np.max(highs[-60:]))
+            feat.breakout60_flag = bool(feat.close >= high60 - 1e-9)

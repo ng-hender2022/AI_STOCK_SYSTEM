@@ -50,6 +50,7 @@ class LiqFeatures:
     # Today's value (billion VND) — the most recent day in cutoff
     today_value: float = 0.0
     today_vs_avg: float = 0.0     # today_value / adtv_20d
+    liquidity_shock: float = 0.0  # (close*volume) / MA20_turnover
 
     has_sufficient_data: bool = False
 
@@ -218,6 +219,9 @@ class LiqFeatureBuilder:
             feat.today_vs_avg = feat.today_value / feat.adtv_20d
         else:
             feat.today_vs_avg = 0.0
+
+        # --- Liquidity shock = today_value / adtv_20d ---
+        feat.liquidity_shock = feat.today_vs_avg  # same ratio, explicit name
 
         # --- Recent breakout/drought ---
         breakout_thresh = self.cfg["volume_breakout_threshold"]

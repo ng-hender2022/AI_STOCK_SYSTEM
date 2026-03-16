@@ -2,10 +2,17 @@ model_id: R5
 model_name: Sector Models (per-sector LightGBM)
 model_type: regression_per_sector
 default_horizon: 5
-min_sector_stocks: 3  # below this, use global model
+min_sector_stocks: 3
 scale_factor: 200
 hyperparams:
   n_estimators: 150
   max_depth: 5
   learning_rate: 0.05
   verbose: -1
+
+# Signal filters (tightened)
+signal_filters:
+  score_threshold: 2.0      # only strong signals pass at full weight
+  weak_dampen: 0.4          # multiply weak signals (abs < 2.0)
+  top_sector_pct: 0.30      # symbol must be in top 30% of sector
+  non_top_dampen: 0.6       # dampen if not in top 30%

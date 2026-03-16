@@ -16,6 +16,134 @@ from pathlib import Path
 from datetime import datetime
 from abc import ABC, abstractmethod
 
+# Sub-features to extract from expert_signals metadata_json
+# Maps expert_id -> list of (metadata_key, feature_column_name, default_value)
+SUB_FEATURE_MAP = {
+    "V4RSI": [
+        ("rsi_slope", "v4rsi_slope", 0.0),
+        ("divergence_flag", "v4rsi_divergence_flag", 0),
+        ("centerline_cross", "v4rsi_center_cross_flag", 0),
+    ],
+    "V4MACD": [
+        ("histogram_slope", "v4macd_hist_slope", 0.0),
+        ("macd_cross_flag", "v4macd_cross_flag", 0),
+        ("divergence_flag", "v4macd_divergence_flag", 0),
+    ],
+    "V4BB": [
+        ("bb_bandwidth", "v4bb_width", 0.0),
+        ("bb_pct_b", "v4bb_position", 0.5),
+        ("bb_squeeze_active", "v4bb_squeeze_flag", 0),
+        ("bb_band_walk", "v4bb_band_walk_flag", 0),
+    ],
+    "V4V": [
+        ("vol_ratio", "v4v_volume_ratio_20", 1.0),
+        ("vol_trend_5", "v4v_volume_trend", 0.0),
+        ("vol_climax", "v4v_climax_volume_flag", 0),
+        ("vol_drying", "v4v_drying_volume_flag", 0),
+        ("vol_expansion", "v4v_expansion_flag", 0),
+    ],
+    "V4P": [
+        ("ret_1d", "v4p_ret_1d", 0.0),
+        ("ret_5d", "v4p_ret_5d", 0.0),
+        ("ret_10d", "v4p_ret_10d", 0.0),
+        ("ret_20d", "v4p_ret_20d", 0.0),
+        ("breakout_flag", "v4p_breakout20_flag", 0),
+        ("breakout60_flag", "v4p_breakout60_flag", 0),
+        ("range_position", "v4p_range_position", 0.5),
+        ("gap_ret", "v4p_gap_ret", 0.0),
+        ("trend_persistence", "v4p_trend_persistence", 0.5),
+    ],
+    "V4I": [
+        ("cloud_position_score", "v4i_cloud_position_score", 0.0),
+        ("tk_signal_score", "v4i_tk_signal_score", 0.0),
+        ("chikou_confirm_score", "v4i_chikou_confirm_score", 0.0),
+        ("future_cloud_score", "v4i_future_cloud_score", 0.0),
+        ("time_resonance", "v4i_time_resonance", 0.0),
+    ],
+    "V4MA": [
+        ("alignment_score", "v4ma_alignment_score", 0.0),
+        ("ema20_slope", "v4ma_slope_20", 0.0),
+        ("ma50_slope", "v4ma_slope_50", 0.0),
+        ("ma200_slope", "v4ma_slope_200", 0.0),
+        ("golden_cross", "v4ma_golden_cross_flag", 0),
+        ("death_cross", "v4ma_death_cross_flag", 0),
+        ("dist_ema20", "v4ma_dist_ma20", 0.0),
+        ("dist_ma50", "v4ma_dist_ma50", 0.0),
+        ("dist_ma100", "v4ma_dist_ma100", 0.0),
+        ("dist_ma200", "v4ma_dist_ma200", 0.0),
+    ],
+    "V4ADX": [
+        ("adx_value", "v4adx_value", 0.0),
+        ("plus_di", "v4adx_di_plus", 0.0),
+        ("minus_di", "v4adx_di_minus", 0.0),
+        ("di_diff", "v4adx_di_spread", 0.0),
+    ],
+    "V4STO": [
+        ("stoch_k", "v4sto_k", 0.5),
+        ("stoch_d", "v4sto_d", 0.5),
+        ("stoch_cross_in_zone", "v4sto_cross_flag", 0),
+        ("stoch_divergence", "v4sto_divergence_flag", 0),
+    ],
+    "V4OBV": [
+        ("obv_slope_norm", "v4obv_slope", 0.0),
+        ("obv_divergence", "v4obv_divergence_flag", 0),
+        ("obv_new_high", "v4obv_breakout_flag", 0),
+    ],
+    "V4ATR": [
+        ("atr_pct", "v4atr_pct", 0.0),
+        ("atr_percentile", "v4atr_percentile", 50.0),
+        ("volatility_compression", "v4atr_vol_compression", 1.0),
+        ("atr_expanding", "v4atr_expanding_flag", 0),
+    ],
+    "V4CANDLE": [
+        ("body_pct", "v4candle_body_pct", 0.0),
+        ("upper_shadow_pct", "v4candle_upper_wick_pct", 0.0),
+        ("lower_shadow_pct", "v4candle_lower_wick_pct", 0.0),
+        ("volume_confirm", "v4candle_volume_confirm", 0),
+    ],
+    "V4BR": [
+        ("pct_above_sma50", "v4br_pct_above_ma50", 0.5),
+        ("ad_ratio", "v4br_ad_ratio", 0.5),
+        ("net_new_highs", "v4br_new_high_low_ratio", 0.0),
+        ("pos_divergence", "v4br_pos_divergence", 0),
+        ("neg_divergence", "v4br_neg_divergence", 0),
+    ],
+    "V4RS": [
+        ("rs_5d", "v4rs_5d", 0.0),
+        ("rs_20d", "v4rs_20d", 0.0),
+        ("rs_acceleration", "v4rs_acceleration", 0.0),
+        ("rs_rank_20d", "v4rs_rank", 0.5),
+    ],
+    "V4S": [
+        ("sector_return_20d", "v4s_sector_ret_20d", 0.0),
+        ("sector_rank_20d", "v4s_sector_rank", 7.0),
+        ("sector_vs_market_20d", "v4s_sector_vs_market", 0.0),
+        ("sector_momentum", "v4s_sector_momentum", 0.0),
+    ],
+    "V4LIQ": [
+        ("adtv_20d", "v4liq_avg_vol_20", 0.0),
+        ("adtv_ratio", "v4liq_turnover_ratio", 1.0),
+        ("liquidity_shock", "v4liq_liquidity_shock", 1.0),
+    ],
+    "V4PIVOT": [
+        ("confluence_score", "v4pivot_confluence_score", 0.0),
+        ("position_score", "v4pivot_position_score", 0.0),
+        ("alignment_score", "v4pivot_alignment_score", 0.0),
+    ],
+    "V4SR": [
+        ("dist_to_support", "v4sr_dist_support", 0.0),
+        ("dist_to_resistance", "v4sr_dist_resistance", 0.0),
+        ("strength_score", "v4sr_strength", 0.0),
+        ("breakout_above_resistance", "v4sr_breakout_flag", 0),
+    ],
+    "V4TREND_PATTERN": [
+        ("confirmed", "v4tp_breakout_confirmed", 0),
+        ("target_pct", "v4tp_pattern_completion", 0.0),
+        ("breakout_volume_ratio", "v4tp_breakout_vol_ratio", 0.0),
+        ("pattern_failure", "v4tp_pattern_failure", 0),
+    ],
+}
+
 
 class RBaseModel(ABC):
     """
@@ -50,7 +178,7 @@ class RBaseModel(ABC):
     ) -> pd.DataFrame:
         """
         Load feature matrix from signals.db meta_features + expert_signals.
-        Returns DataFrame with columns: symbol, date, + 34 features.
+        Returns DataFrame with columns: symbol, date, + expert norm scores + sub-features + meta features.
         """
         conn = sqlite3.connect(self.signals_db, timeout=30)
         conn.row_factory = sqlite3.Row
@@ -63,7 +191,13 @@ class RBaseModel(ABC):
                    structure_group_score, context_group_score,
                    expert_conflict_score, expert_alignment_score,
                    bullish_expert_count, bearish_expert_count,
-                   regime_score
+                   regime_score,
+                   trend_alignment_score, trend_strength_max,
+                   ma_alignment_pct, trend_persistence_avg,
+                   momentum_divergence_count, overbought_count, oversold_count,
+                   volume_pressure, liquidity_shock_avg, climax_volume_count,
+                   compression_count, bull_bear_ratio, sector_momentum,
+                   breakout_count
             FROM meta_features
             WHERE date >= ? AND date <= ?
         """
@@ -90,7 +224,7 @@ class RBaseModel(ABC):
 
         # Load expert norm scores per symbol-date
         expert_sql = """
-            SELECT symbol, date, expert_id, primary_score, secondary_score
+            SELECT symbol, date, expert_id, primary_score, secondary_score, metadata_json
             FROM expert_signals
             WHERE date >= ? AND date <= ? AND snapshot_time = 'EOD'
         """
@@ -102,26 +236,61 @@ class RBaseModel(ABC):
         expert_rows = conn.execute(expert_sql, eparams).fetchall()
         conn.close()
 
-        # Pivot expert scores into norm columns
+        # Pivot expert scores into norm columns AND extract sub-features
         from AI_engine.meta_layer.meta_builder import _normalize_score
         norm_data = {}
+        sub_data = {}  # {(symbol, date): {col: value}}
         for r in expert_rows:
             key = (r["symbol"], r["date"])
             if key not in norm_data:
                 norm_data[key] = {}
+            if key not in sub_data:
+                sub_data[key] = {}
             eid = r["expert_id"]
             norm_data[key][f"{eid.lower()}_norm"] = _normalize_score(eid, r["primary_score"])
 
-        # Merge norm columns into df
+            # Extract sub-features from metadata_json
+            if eid in SUB_FEATURE_MAP and r["metadata_json"]:
+                try:
+                    meta = json.loads(r["metadata_json"])
+                except (json.JSONDecodeError, TypeError):
+                    continue
+                for meta_key, col_name, default in SUB_FEATURE_MAP[eid]:
+                    val = meta.get(meta_key, default)
+                    # Convert booleans to int
+                    if isinstance(val, bool):
+                        val = int(val)
+                    elif isinstance(val, str):
+                        continue  # skip string features
+                    try:
+                        sub_data[key][col_name] = float(val)
+                    except (ValueError, TypeError):
+                        sub_data[key][col_name] = float(default)
+
+        # Build norm + sub-feature DataFrames efficiently via dict-of-lists
+        all_extra = {}  # col -> [values]
+        keys = list(zip(df["symbol"], df["date"]))
+
+        # Collect all column names
         norm_cols = set()
         for norms in norm_data.values():
             norm_cols.update(norms.keys())
+        sub_cols = set()
+        for subs in sub_data.values():
+            sub_cols.update(subs.keys())
 
         for col in sorted(norm_cols):
-            df[col] = df.apply(
-                lambda row: norm_data.get((row["symbol"], row["date"]), {}).get(col, 0.0),
-                axis=1,
-            )
+            all_extra[col] = [
+                norm_data.get(k, {}).get(col, 0.0) for k in keys
+            ]
+        for col in sorted(sub_cols):
+            all_extra[col] = [
+                sub_data.get(k, {}).get(col, 0.0) for k in keys
+            ]
+
+        if all_extra:
+            extra_df = pd.DataFrame(all_extra, index=df.index)
+            df = pd.concat([df, extra_df], axis=1)
 
         return df
 

@@ -68,6 +68,7 @@ class MACDExpertWriter:
             "histogram_score": round(output.histogram_score, 4),
             "divergence_score": round(output.divergence_score, 4),
             "macd_norm": round(output.macd_norm, 6),
+            "macd_cross_flag": 1 if features.bull_cross else (-1 if features.bear_cross else 0),
         }
 
         conn.execute(

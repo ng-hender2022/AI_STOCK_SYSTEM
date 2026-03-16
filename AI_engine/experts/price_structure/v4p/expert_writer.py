@@ -68,6 +68,13 @@ class PAExpertWriter:
             "trend_score": round(float(output.trend_score), 4),
             "range_score": round(float(output.range_score), 4),
             "sma20_score": round(float(output.sma20_score), 4),
+            "trend_persistence": round(float(features.trend_persistence), 6),
+            "ret_1d": round(float(features.ret_1d), 6),
+            "ret_5d": round(float(features.ret_5d), 6),
+            "ret_10d": round(float(features.ret_10d), 6),
+            "ret_20d": round(float(features.ret_20d), 6),
+            "gap_ret": round(float(features.gap_ret), 6),
+            "breakout60_flag": bool(features.breakout60_flag),
         }
 
         conn.execute(

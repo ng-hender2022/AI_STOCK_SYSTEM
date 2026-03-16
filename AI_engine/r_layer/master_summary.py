@@ -25,6 +25,8 @@ class SummaryRow:
     r3_score: float | None = None
     r4_score: float | None = None
     r5_score: float | None = None
+    r6_score: float | None = None
+    r7_score: float | None = None
 
     # Ensemble
     ensemble_score: float | None = None
@@ -57,7 +59,8 @@ class MasterSummary:
     """
 
     DIRECTION_THRESHOLD = 0.5
-    R_MODELS = ["r0", "r1", "r2", "r3", "r4", "r5"]
+    # R1 excluded from ensemble (OOS R2=0.0). Still stored in DB for reference.
+    R_MODELS = ["r0", "r2", "r3", "r4", "r5", "r6", "r7"]
 
     def __init__(self, models_db: str | Path):
         self.models_db = str(models_db)
@@ -83,6 +86,8 @@ class MasterSummary:
                 r3_score            REAL,
                 r4_score            REAL,
                 r5_score            REAL,
+                r6_score            REAL,
+                r7_score            REAL,
 
                 -- Ensemble
                 ensemble_score      REAL,
@@ -198,18 +203,18 @@ class MasterSummary:
         conn.execute(
             """INSERT OR REPLACE INTO master_summary (
                 symbol, date, snapshot_time,
-                r0_score, r1_score, r2_score, r3_score, r4_score, r5_score,
+                r0_score, r1_score, r2_score, r3_score, r4_score, r5_score, r6_score, r7_score,
                 ensemble_score, ensemble_confidence, ensemble_direction,
                 agg_avg_score, agg_median_score, agg_dispersion,
                 agg_agreement_score,
                 agg_bullish_model_count, agg_bearish_model_count,
                 agg_neutral_model_count, agg_available_models,
                 summary_direction, summary_strength
-            ) VALUES (?,?,'EOD',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ) VALUES (?,?,'EOD',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 s.symbol, s.date,
                 s.r0_score, s.r1_score, s.r2_score,
-                s.r3_score, s.r4_score, s.r5_score,
+                s.r3_score, s.r4_score, s.r5_score, s.r6_score, s.r7_score,
                 s.ensemble_score, s.ensemble_confidence, s.ensemble_direction,
                 round(s.agg_avg_score, 4), round(s.agg_median_score, 4),
                 round(s.agg_dispersion, 4), round(s.agg_agreement_score, 4),
