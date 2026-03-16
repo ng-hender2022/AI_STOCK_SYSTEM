@@ -319,18 +319,43 @@ class RBaseModel(ABC):
     # ------------------------------------------------------------------
 
     def save_model(self, path: str | Path) -> None:
-        """Save trained model to disk."""
+        """Save trained model + all state to disk."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            "model": self.model,
+            "version": self.model_version,
+            "_feature_names": getattr(self, "_feature_names", None),
+            "_label_map": getattr(self, "_label_map", None),
+            "_label_inv": getattr(self, "_label_inv", None),
+            "feature_importances_": getattr(self, "feature_importances_", None),
+            "scale_factor": getattr(self, "scale_factor", None),
+            "sector_models": getattr(self, "sector_models", None),
+            "global_model": getattr(self, "global_model", None),
+        }
         with open(path, "wb") as f:
-            pickle.dump({"model": self.model, "version": self.model_version}, f)
+            pickle.dump(state, f)
 
     def load_model(self, path: str | Path) -> None:
-        """Load model from disk."""
+        """Load model + all state from disk."""
         with open(path, "rb") as f:
             data = pickle.load(f)
         self.model = data["model"]
-        self.model_version = data["version"]
+        self.model_version = data.get("version")
+        if data.get("_feature_names"):
+            self._feature_names = data["_feature_names"]
+        if data.get("_label_map"):
+            self._label_map = data["_label_map"]
+        if data.get("_label_inv"):
+            self._label_inv = data["_label_inv"]
+        if data.get("feature_importances_"):
+            self.feature_importances_ = data["feature_importances_"]
+        if data.get("scale_factor") is not None:
+            self.scale_factor = data["scale_factor"]
+        if data.get("sector_models") is not None:
+            self.sector_models = data["sector_models"]
+        if data.get("global_model") is not None:
+            self.global_model = data["global_model"]
 
     # ------------------------------------------------------------------
     # Abstract methods
