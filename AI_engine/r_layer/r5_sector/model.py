@@ -152,29 +152,25 @@ class R5Model(RBaseModel):
                 sector_scores[sector] = []
             sector_scores[sector].append((sym, raw))
 
-        # Rank within sector: True if in top 30%
-        in_top_30 = set()
+        # Rank within sector: True if in top 10%
+        in_top_10 = set()
         for sector, pairs in sector_scores.items():
             pairs_sorted = sorted(pairs, key=lambda x: x[1], reverse=True)
-            top_n = max(1, int(len(pairs_sorted) * 0.30))
+            top_n = max(1, int(len(pairs_sorted) * 0.10))
             for sym, _ in pairs_sorted[:top_n]:
-                in_top_30.add(sym)
+                in_top_10.add(sym)
 
         results = []
         for i, (sym, sector, raw) in enumerate(raw_preds):
             score = max(-4.0, min(4.0, raw * self.scale_factor))
             confidence = min(1.0, abs(score) / 4.0)
 
-            # Tightened filters:
-            # 1. Only strong signals (abs >= 2.0)
-            # 2. Must be in top 30% of sector
-            # 3. Dampen weak signals
-            if abs(score) < 2.0:
-                score = score * 0.4  # dampen weak signals heavily
-            elif sym not in in_top_30:
-                score = score * 0.6  # not top of sector -> reduce
+            # Hard threshold: abs(score) >= 3.5, top 10% of sector, signal_quality >= 3
+            # Target: 3-4 signals/year/symbol
+            signal_quality = int(min(4, abs(score)))  # derive quality from score strength
+            if abs(score) < 3.5 or sym not in in_top_10 or signal_quality < 3:
+                score = 0.0  # kill weak signals completely
 
-            score = max(-4.0, min(4.0, score))
             confidence = min(1.0, abs(score) / 4.0)
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 

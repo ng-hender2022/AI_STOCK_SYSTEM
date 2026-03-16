@@ -136,16 +136,10 @@ class R4Model(RBaseModel):
             liq_score = float(X_feat.iloc[i].get("context_group_score", 0.0)) * 2
             liq_score = max(-2.0, min(2.0, liq_score))
 
-            # Tightened filters: only emit signal when strong conviction
-            # BUY: regime >= +2, SELL: regime <= -2, confidence >= 0.65
-            if confidence < 0.65:
-                score = score * 0.3  # dampen low-confidence to near zero
-            elif score > 0 and score < 2.0:
-                score = score * 0.5  # dampen weak bull to reduce noise
-            elif score < 0 and score > -2.0:
-                score = score * 0.5  # dampen weak bear
-
-            score = max(-4.0, min(4.0, score))
+            # Hard threshold: only emit when abs(regime_score) >= 3 and high confidence
+            # Target: 3-4 signals/year/symbol
+            if abs(score) < 3.0 or confidence < 0.70:
+                score = 0.0  # kill weak/uncertain signals completely
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
             results.append({
                 "symbol": sym_dates.iloc[i]["symbol"],
