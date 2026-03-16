@@ -292,6 +292,10 @@ class RBaseModel(ABC):
             extra_df = pd.DataFrame(all_extra, index=df.index)
             df = pd.concat([df, extra_df], axis=1)
 
+        # Normalize features per NORMALIZATION_RULEBOOK
+        from AI_engine.meta_layer.feature_normalizer import FeatureNormalizer
+        df = FeatureNormalizer().normalize(df, date_col="date", symbol_col="symbol")
+
         return df
 
     def load_labels(
@@ -359,6 +363,7 @@ class RBaseModel(ABC):
             return pd.DataFrame(), pd.Series(dtype=float), pd.Series(dtype=str)
 
         # Feature columns = everything except identity + target columns
+        # (normalization already applied in load_feature_matrix)
         non_feature_cols = {
             "symbol", "date", "feature_date", "close_t",
             "target_return", "target_label", "snapshot_time",

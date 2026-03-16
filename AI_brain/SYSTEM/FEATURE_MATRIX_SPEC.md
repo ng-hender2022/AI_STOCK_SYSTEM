@@ -1,8 +1,8 @@
 # FEATURE MATRIX SPECIFICATION
 
-Version: 2.0
+Version: 2.1
 Date: 2026-03-16
-Status: ACTIVE
+Status: ACTIVE | Normalization: feature_normalizer.py integrated
 
 ---
 
@@ -275,6 +275,39 @@ Each row = 1 symbol x 1 date. Columns = all expert sub-features + meta features 
 | bull_bear_ratio | float | 0..+inf |
 | sector_momentum | float | unbounded |
 | breakout_count | int | 0..20 |
+
+---
+
+## NORMALIZATION
+
+Version: 2.1. All features are normalized per AI_STOCK_FEATURE_NORMALIZATION_RULEBOOK before R Layer training/prediction.
+
+### Normalization Categories
+
+| Category | Method | Output Range | Features |
+|----------|--------|-------------|----------|
+| NORM | Already normalized | -1..+1 | All 19 expert `*_norm` scores |
+| A (oscillator 0..100) | (x - 50) / 50 | -1..+1 | v4adx_value, v4adx_di_plus, v4adx_di_minus, v4atr_percentile, v4br_pct_above_ma50 |
+| A (oscillator 0..1) | (x - 0.5) / 0.5 | -1..+1 | v4sto_k, v4sto_d |
+| C (returns) | z-score rolling 252d | -5..+5 | v4p_ret_1d/5d/10d/20d, v4p_gap_ret, v4rs_5d/20d, v4rs_acceleration, v4s_sector_ret_20d, v4s_sector_vs_market, v4s_sector_momentum, sector_momentum, v4rsi_slope, v4macd_hist_slope, v4v_volume_trend, v4obv_slope, v4ma_slope_20/50/200, v4br_new_high_low_ratio |
+| D (ratios) | log(1 + x) | 0..+inf | v4v_volume_ratio_20, v4liq_liquidity_shock, v4liq_turnover_ratio, v4liq_avg_vol_20, v4atr_vol_compression, v4atr_pct, v4tp_breakout_vol_ratio, v4bb_width, volume_pressure, liquidity_shock_avg |
+| E (distances) | No change (already % of price) | -0.2..+0.2 | v4ma_dist_ma20/50/100/200, v4sr_dist_support/resistance, v4tp_pattern_completion |
+| F (binary flags) | No change | -1/0/+1 | All *_flag, *_divergence, *_cross, *_confirmed, *_failure features (24 total) |
+| G (percent 0..1) | No change | 0..1 | v4bb_position, v4p_range_position, v4p_trend_persistence, v4candle_body/wick_pct, v4br_ad_ratio, v4rs_rank, v4i_time_resonance, expert_conflict/alignment_score, trend_alignment_score, trend_strength_max, ma_alignment_pct, trend_persistence_avg, bull_bear_ratio |
+| H (bounded scores) | Divide by max | -1..+1 | v4i_cloud_position_score(/2), v4ma_alignment_score(/3), v4adx_di_spread(/100), v4pivot_position_score(/2), v4s_sector_rank(centered/7), regime_score(/4), group scores(already -1..+1) |
+| H (counts) | Divide by max | 0..1 | bullish/bearish_expert_count(/20), momentum_divergence_count(/3), overbought/oversold_count(/2), compression_count(/2), breakout_count(/3), climax_volume_count(/1) |
+
+### Anti-Leakage Rule for Z-Score
+
+Z-score rolling statistics use **past-only data** (up to T-1). For row at date T, the mean and std are computed from the previous 252 trading days for that symbol. First 20 rows get z-score = 0 (insufficient history).
+
+### Validation
+
+After normalization, the pipeline verifies:
+1. No NaN values (replaced with 0)
+2. No infinite values (replaced with 0)
+3. Z-scores clipped to [-5, +5]
+4. All transformations are deterministic and reproducible
 
 ---
 
