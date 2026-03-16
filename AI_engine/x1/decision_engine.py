@@ -22,15 +22,42 @@ class Decision:
     reason: str             # human-readable reason
 
 
-# Thresholds
+# BUY Thresholds
 STRONG_BUY_SCORE = 2.0
 STRONG_BUY_CONFIDENCE = 0.7
 MODERATE_BUY_SCORE = 1.0
 MODERATE_BUY_CONFIDENCE = 0.55
-STRONG_SELL_SCORE = -2.0
-MODERATE_SELL_SCORE = -1.0
 REGIME_BLOCK_THRESHOLD = -3.0   # block aggressive longs when regime <= -3
 REGIME_BULL_THRESHOLD = 2.0     # allow larger risk when regime >= +2
+
+# SELL Thresholds — Regime-Adaptive
+# In bull markets, most SELL signals are wrong (stocks keep rising).
+# Calibrated from OOS analysis: max ensemble ~-2.36, most 4-5 bearish models.
+SELL_CONFIG = {
+    "BULL": {       # regime >= +2
+        "threshold": -2.0,
+        "min_agreement": 5,   # out of 6 R models must be bearish
+    },
+    "NEUTRAL": {    # regime 0 to +2
+        "threshold": -1.8,
+        "min_agreement": 4,
+    },
+    "BEAR": {       # regime < 0
+        "threshold": -1.5,
+        "min_agreement": 3,
+    },
+}
+
+
+def _get_sell_params(regime_trend: float) -> tuple[float, int]:
+    """Get sell threshold and min agreement based on regime."""
+    if regime_trend >= 2.0:
+        cfg = SELL_CONFIG["BULL"]
+    elif regime_trend >= 0:
+        cfg = SELL_CONFIG["NEUTRAL"]
+    else:
+        cfg = SELL_CONFIG["BEAR"]
+    return cfg["threshold"], cfg["min_agreement"]
 
 
 class DecisionEngine:
@@ -148,22 +175,34 @@ class DecisionEngine:
                 symbol=symbol, date=date, action="HOLD", score=score,
                 confidence=confidence, strength="NONE",
                 regime_trend=regime_trend, regime_blocked=False,
-                reason="Index symbol — not tradable",
+                reason="Index symbol -- not tradable",
             )
 
-        # Regime block: if trend <= -3, block aggressive longs
+        # Count bearish R models for SELL consensus check
+        bearish_model_count = 0
+        total_model_count = 0
+        for col in ["r0_score", "r1_score", "r2_score", "r3_score", "r4_score", "r5_score"]:
+            try:
+                v = row[col]
+                if v is not None:
+                    total_model_count += 1
+                    if float(v) < -0.5:
+                        bearish_model_count += 1
+            except (KeyError, IndexError):
+                pass
+
+        # --- BUY LOGIC ---
         regime_blocked = False
         if regime_trend <= REGIME_BLOCK_THRESHOLD and score > 0:
             regime_blocked = True
 
-        # Decision logic
         if score >= STRONG_BUY_SCORE and confidence >= STRONG_BUY_CONFIDENCE:
             if regime_blocked:
                 return Decision(
                     symbol=symbol, date=date, action="HOLD", score=score,
                     confidence=confidence, strength="BLOCKED",
                     regime_trend=regime_trend, regime_blocked=True,
-                    reason=f"Strong buy signal blocked by bear regime ({regime_trend})",
+                    reason=f"Strong buy blocked by bear regime ({regime_trend})",
                 )
             return Decision(
                 symbol=symbol, date=date, action="BUY", score=score,
@@ -187,20 +226,32 @@ class DecisionEngine:
                 reason=f"Moderate buy: score={score:.2f}, conf={confidence:.2f}",
             )
 
-        elif score <= STRONG_SELL_SCORE:
+        # --- SELL LOGIC (regime-adaptive) ---
+        sell_threshold, min_agreement = _get_sell_params(regime_trend)
+
+        if score <= sell_threshold and bearish_model_count >= min_agreement:
+            strength = "STRONG" if score <= sell_threshold - 1.0 else "MODERATE"
             return Decision(
                 symbol=symbol, date=date, action="SELL", score=score,
-                confidence=confidence, strength="STRONG",
+                confidence=confidence, strength=strength,
                 regime_trend=regime_trend, regime_blocked=False,
-                reason=f"Strong sell: score={score:.2f}",
+                reason=(
+                    f"Sell: score={score:.2f}, "
+                    f"agreement={bearish_model_count}/{total_model_count}, "
+                    f"regime={regime_trend:.1f}, thresh={sell_threshold}"
+                ),
             )
 
-        elif score <= MODERATE_SELL_SCORE:
+        elif score <= sell_threshold:
+            # Score passes but not enough model agreement
             return Decision(
-                symbol=symbol, date=date, action="SELL", score=score,
-                confidence=confidence, strength="MODERATE",
-                regime_trend=regime_trend, regime_blocked=False,
-                reason=f"Moderate sell: score={score:.2f}",
+                symbol=symbol, date=date, action="HOLD", score=score,
+                confidence=confidence, strength="BLOCKED",
+                regime_trend=regime_trend, regime_blocked=True,
+                reason=(
+                    f"Sell blocked: score={score:.2f} but agreement "
+                    f"{bearish_model_count}/{total_model_count} < {min_agreement} required"
+                ),
             )
 
         else:

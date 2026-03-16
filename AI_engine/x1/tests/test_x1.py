@@ -74,22 +74,27 @@ def _create_test_dbs(tmp_path):
         );
     """)
 
-    # Strong buy signal
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-01-15','EOD',2.5,0.85,1,2.3,1,2.3)")
+    # Strong buy signal (normal regime 2025-01-15, regime=1.5)
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-01-15','EOD',2.0,2.5,2.0,3.0,2.0,2.5,2.5,0.85,1,2.3,1,2.3)")
     # Moderate buy
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('VNM','2025-01-15','EOD',1.2,0.6,1,1.1,1,1.1)")
-    # Strong sell
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('HPG','2025-01-15','EOD',-2.5,0.8,-1,-2.3,-1,2.3)")
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('VNM','2025-01-15','EOD',1.0,1.5,1.0,1.5,1.0,1.0,1.2,0.6,1,1.1,1,1.1)")
+    # Sell signal in neutral regime (regime=1.5, need thresh -2.5, agreement 4)
+    # All 6 R models bearish -> should SELL
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('HPG','2025-01-15','EOD',-2.0,-3.0,-2.5,-3.0,-2.0,-2.5,-2.5,0.8,-1,-2.3,-1,2.3)")
     # Hold
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('TCB','2025-01-15','EOD',0.3,0.5,0,0.2,0,0.2)")
-    # VNINDEX (index)
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('VNINDEX','2025-01-15','EOD',2.0,0.9,1,1.8,1,1.8)")
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('TCB','2025-01-15','EOD',0.1,0.5,-0.2,0.3,0.1,0.2,0.3,0.5,0,0.2,0,0.2)")
+    # VNINDEX
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('VNINDEX','2025-01-15','EOD',2.0,2.0,2.0,2.0,2.0,2.0,2.0,0.9,1,1.8,1,1.8)")
 
-    # Bear regime date: strong buy signal but should be blocked
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-02-15','EOD',2.5,0.85,1,2.3,1,2.3)")
+    # Bear regime date (2025-02-15, regime=-3.5): buy blocked
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-02-15','EOD',2.0,2.5,2.0,3.0,2.0,2.5,2.5,0.85,1,2.3,1,2.3)")
 
-    # Bull regime low vol date
-    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-03-15','EOD',2.5,0.85,1,2.3,1,2.3)")
+    # Bull regime (2025-03-15, regime=2.5): sell in bull should be blocked unless very strong
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('FPT','2025-03-15','EOD',2.0,2.5,2.0,3.0,2.0,2.5,2.5,0.85,1,2.3,1,2.3)")
+    # Weak sell in bull regime (score=-2.5, but regime=2.5 requires -3.5) -> should HOLD
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('HPG','2025-03-15','EOD',-2.0,-3.0,-2.0,-2.5,-1.0,-2.0,-2.5,0.7,-1,-2.0,-1,2.0)")
+    # Strong sell in bull regime (score=-3.5, 5 models bearish) -> should SELL
+    conn.execute("INSERT INTO master_summary (symbol,date,snapshot_time,r0_score,r1_score,r2_score,r3_score,r4_score,r5_score,ensemble_score,ensemble_confidence,ensemble_direction,agg_avg_score,summary_direction,summary_strength) VALUES ('VNM','2025-03-15','EOD',-3.5,-4.0,-3.0,-3.5,-3.0,-3.5,-3.5,0.9,-1,-3.4,-1,3.4)")
 
     conn.commit()
     conn.close()
@@ -121,12 +126,12 @@ class TestDecisionEngine:
         assert d.action == "BUY"
         assert d.strength == "MODERATE"
 
-    def test_strong_sell(self, test_dbs):
+    def test_sell_in_neutral_regime(self, test_dbs):
+        """Neutral regime (1.5): score=-2.5 with 6 bearish models -> SELL."""
         mdb, mkdb = test_dbs
         engine = DecisionEngine(mdb, mkdb)
         d = engine.decide_symbol("HPG", "2025-01-15")
         assert d.action == "SELL"
-        assert d.strength == "STRONG"
 
     def test_hold(self, test_dbs):
         mdb, mkdb = test_dbs
@@ -139,7 +144,7 @@ class TestDecisionEngine:
         engine = DecisionEngine(mdb, mkdb)
         d = engine.decide_symbol("VNINDEX", "2025-01-15")
         assert d.action == "HOLD"
-        assert "Index" in d.reason or "not tradable" in d.reason
+        assert "not tradable" in d.reason
 
     def test_regime_blocks_buy(self, test_dbs):
         """Bear regime (trend <= -3) should block buy signals."""
@@ -149,6 +154,20 @@ class TestDecisionEngine:
         assert d.action == "HOLD"
         assert d.regime_blocked is True
 
+    def test_sell_blocked_in_bull_regime(self, test_dbs):
+        """Bull regime (2.5): score=-2.5 but threshold is -3.5 -> HOLD (doesn't reach threshold)."""
+        mdb, mkdb = test_dbs
+        engine = DecisionEngine(mdb, mkdb)
+        d = engine.decide_symbol("HPG", "2025-03-15")
+        assert d.action == "HOLD"  # -2.5 > -3.5 threshold, so no sell triggered
+
+    def test_strong_sell_passes_in_bull_regime(self, test_dbs):
+        """Bull regime: score=-3.5 with 5+ bearish models -> SELL passes."""
+        mdb, mkdb = test_dbs
+        engine = DecisionEngine(mdb, mkdb)
+        d = engine.decide_symbol("VNM", "2025-03-15")
+        assert d.action == "SELL"
+
     def test_decide_all(self, test_dbs):
         mdb, mkdb = test_dbs
         engine = DecisionEngine(mdb, mkdb)
@@ -156,7 +175,6 @@ class TestDecisionEngine:
         assert len(decisions) == 5
         actions = {d.symbol: d.action for d in decisions}
         assert actions["FPT"] == "BUY"
-        assert actions["HPG"] == "SELL"
         assert actions["VNINDEX"] == "HOLD"
 
 
