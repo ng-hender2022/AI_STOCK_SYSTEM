@@ -16,6 +16,7 @@ except ImportError:
 
 from sklearn.metrics import accuracy_score, f1_score
 from ..base_model import RBaseModel
+from ..regime_filter import RegimeFilter
 
 # Monotonic constraints per AI_STOCK_MONOTONIC_CONSTRAINT_MAP
 # Maps feature column name -> constraint (1=positive, -1=negative, 0=neutral)
@@ -158,6 +159,10 @@ class R7Model(RBaseModel):
                 X_feat[col] = 0.0
         X_feat = X_feat[self._feature_names].fillna(0.0)
 
+        # Regime filter
+        rf = RegimeFilter(self.market_db)
+        regime_ctx = rf.get_regime_context(date)
+
         probs = self.model.predict_proba(X_feat)
 
         results = []
@@ -170,21 +175,8 @@ class R7Model(RBaseModel):
             score = max(-4.0, min(4.0, (p_up - 0.5) * 8))
             confidence = max(p_up, p_not_up)
 
-            # Regime-adaptive threshold for BUY signals
-            # regime_score is normalized (/4), denormalize to raw -4..+4
-            raw_regime = float(X_feat.iloc[i].get("regime_score", 0.0)) * 4.0
-            if raw_regime <= -2.0:
-                # Bear: block all BUY signals
-                if score > 0:
-                    score = 0.0
-            elif raw_regime <= -1.0:
-                # Weak Bear: only very strong signals pass
-                if p_up < 0.75:
-                    score = 0.0
-            else:
-                # Neutral/Bull: normal threshold
-                if p_up < 0.60:
-                    score = 0.0
+            # Apply RegimeFilter (replaces old regime-adaptive threshold logic)
+            score = rf.apply_filter(score, p_up, regime_ctx, base_threshold=0.55)
 
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 

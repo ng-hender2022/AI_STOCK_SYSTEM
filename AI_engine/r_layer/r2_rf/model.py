@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
 
 from ..base_model import RBaseModel
+from ..regime_filter import RegimeFilter
 
 
 class R2Model(RBaseModel):
@@ -67,6 +68,10 @@ class R2Model(RBaseModel):
                 X_feat[col] = 0.0
         X_feat = X_feat[self._feature_names].fillna(0.0)
 
+        # Regime filter
+        rf = RegimeFilter(self.market_db)
+        regime_ctx = rf.get_regime_context(date)
+
         probs = self.model.predict_proba(X_feat)
         classes = list(self.model.classes_)
 
@@ -77,6 +82,7 @@ class R2Model(RBaseModel):
             p_down = prob_dict.get("DOWN", 0.0)
 
             score = max(-4.0, min(4.0, (p_up - p_down) * 4))
+            score = rf.apply_filter(score, p_up, regime_ctx, base_threshold=0.55)
             confidence = max(p_up, p_down, prob_dict.get("NEUTRAL", 0.0))
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 

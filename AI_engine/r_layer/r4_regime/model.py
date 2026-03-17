@@ -17,6 +17,7 @@ except ImportError:
 from sklearn.metrics import accuracy_score
 
 from ..base_model import RBaseModel
+from ..regime_filter import RegimeFilter
 
 
 REGIME_BINS = [-0.08, -0.05, -0.03, -0.01, 0.01, 0.03, 0.05, 0.08]
@@ -119,6 +120,10 @@ class R4Model(RBaseModel):
                 X_feat[col] = 0.0
         X_feat = X_feat[self._feature_names].fillna(0.0)
 
+        # Regime filter
+        rf = RegimeFilter(self.market_db)
+        regime_ctx = rf.get_regime_context(date)
+
         probs = self.model.predict_proba(X_feat)
         trained_classes = list(self.model.classes_)  # actual classes present
 
@@ -129,6 +134,7 @@ class R4Model(RBaseModel):
             expected = sum((int(trained_classes[j]) - 4) * float(p[j]) for j in range(len(trained_classes)))
             score = max(-4.0, min(4.0, expected))
             confidence = float(max(p))
+            score = rf.apply_filter(score, confidence, regime_ctx, base_threshold=0.58)
 
             # Derive vol/liq from features
             vol_score = float(X_feat.iloc[i].get("volatility_group_score", 0.0)) * 4

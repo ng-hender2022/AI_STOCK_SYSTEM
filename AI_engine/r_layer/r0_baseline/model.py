@@ -10,6 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 
 from ..base_model import RBaseModel
+from ..regime_filter import RegimeFilter
 
 
 class R0Model(RBaseModel):
@@ -74,6 +75,10 @@ class R0Model(RBaseModel):
                 X_feat[col] = 0.0
         X_feat = X_feat[self._feature_names].fillna(0.0)
 
+        # Regime filter
+        rf = RegimeFilter(self.market_db)
+        regime_ctx = rf.get_regime_context(date)
+
         probs = self.model.predict_proba(X_feat)
         prob_up = probs[:, 1] if probs.shape[1] == 2 else probs[:, 0]
 
@@ -81,6 +86,7 @@ class R0Model(RBaseModel):
         for i in range(len(sym_dates)):
             p = float(prob_up[i])
             score = max(-4.0, min(4.0, (2 * p - 1) * 4))
+            score = rf.apply_filter(score, p, regime_ctx, base_threshold=0.58)
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
             results.append({
                 "symbol": sym_dates.iloc[i]["symbol"],

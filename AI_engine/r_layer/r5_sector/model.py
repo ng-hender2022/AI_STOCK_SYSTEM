@@ -18,6 +18,7 @@ except ImportError:
 from sklearn.metrics import mean_squared_error
 
 from ..base_model import RBaseModel
+from ..regime_filter import RegimeFilter
 
 MASTER_UNIVERSE_PATH = Path(r"D:\AI\AI_brain\SYSTEM\MASTER_UNIVERSE.md")
 MIN_SECTOR_STOCKS = 3
@@ -160,6 +161,10 @@ class R5Model(RBaseModel):
             for sym, _ in pairs_sorted[:top_n]:
                 in_top_10.add(sym)
 
+        # Regime filter
+        rf = RegimeFilter(self.market_db)
+        regime_ctx = rf.get_regime_context(date)
+
         results = []
         for i, (sym, sector, raw) in enumerate(raw_preds):
             score = max(-4.0, min(4.0, raw * self.scale_factor))
@@ -171,6 +176,7 @@ class R5Model(RBaseModel):
             if abs(score) < 3.5 or sym not in in_top_10 or signal_quality < 3:
                 score = 0.0  # kill weak signals completely
 
+            score = rf.apply_filter(score, confidence, regime_ctx, base_threshold=0.58)
             confidence = min(1.0, abs(score) / 4.0)
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 
