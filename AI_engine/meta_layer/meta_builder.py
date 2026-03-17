@@ -111,6 +111,16 @@ class MetaFeatures:
     regime_duration: int = 0            # days in current regime direction
     regime_transition: float = 0.0      # regime_score[t] - regime_score[t-3]
 
+    # Regime interaction features (expert_norm × trend_regime_norm)
+    rsi_x_regime: float = 0.0
+    macd_x_regime: float = 0.0
+    volume_x_regime: float = 0.0
+    breakout_x_regime: float = 0.0
+    momentum_x_regime: float = 0.0
+    breadth_x_regime: float = 0.0
+    rs_x_regime: float = 0.0
+    bb_x_regime: float = 0.0
+
 
 class MetaBuilder:
     """
@@ -325,6 +335,19 @@ class MetaBuilder:
 
         # Regime context: duration + transition
         meta.regime_duration, meta.regime_transition = self._compute_regime_context(date)
+
+        # Regime interaction features: expert_norm × trend_regime_norm
+        trend_regime_norm = meta.regime_score / 4.0  # -4..+4 → -1..+1
+        meta.rsi_x_regime = norms.get("V4RSI", 0.0) * trend_regime_norm
+        meta.macd_x_regime = norms.get("V4MACD", 0.0) * trend_regime_norm
+        meta.volume_x_regime = norms.get("V4V", 0.0) * trend_regime_norm
+        meta.breadth_x_regime = norms.get("V4BR", 0.0) * trend_regime_norm
+        meta.rs_x_regime = norms.get("V4RS", 0.0) * trend_regime_norm
+        meta.bb_x_regime = norms.get("V4BB", 0.0) * trend_regime_norm
+        meta.momentum_x_regime = meta.momentum_group_score * trend_regime_norm
+        # breakout_flag from V4P metadata (0 or 1) × regime
+        breakout_val = float(p_meta.get("breakout_flag", 0))
+        meta.breakout_x_regime = breakout_val * trend_regime_norm
 
         return meta
 

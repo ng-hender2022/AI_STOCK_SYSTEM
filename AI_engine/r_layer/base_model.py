@@ -198,7 +198,10 @@ class RBaseModel(ABC):
                    volume_pressure, liquidity_shock_avg, climax_volume_count,
                    compression_count, bull_bear_ratio, sector_momentum,
                    breakout_count,
-                   regime_duration, regime_transition
+                   regime_duration, regime_transition,
+                   rsi_x_regime, macd_x_regime, volume_x_regime,
+                   breakout_x_regime, momentum_x_regime,
+                   breadth_x_regime, rs_x_regime, bb_x_regime
             FROM meta_features
             WHERE date >= ? AND date <= ?
         """

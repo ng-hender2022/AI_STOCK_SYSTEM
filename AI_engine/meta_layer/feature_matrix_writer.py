@@ -58,6 +58,14 @@ class FeatureMatrixWriter:
             "breakout_count": "INTEGER DEFAULT 0",
             "regime_duration": "INTEGER DEFAULT 0",
             "regime_transition": "REAL DEFAULT 0",
+            "rsi_x_regime": "REAL DEFAULT 0",
+            "macd_x_regime": "REAL DEFAULT 0",
+            "volume_x_regime": "REAL DEFAULT 0",
+            "breakout_x_regime": "REAL DEFAULT 0",
+            "momentum_x_regime": "REAL DEFAULT 0",
+            "breadth_x_regime": "REAL DEFAULT 0",
+            "rs_x_regime": "REAL DEFAULT 0",
+            "bb_x_regime": "REAL DEFAULT 0",
         }
         for col, typedef in new_cols.items():
             if col not in existing:
@@ -84,8 +92,11 @@ class FeatureMatrixWriter:
                 compression_count,
                 bull_bear_ratio, sector_momentum,
                 breakout_count,
-                regime_duration, regime_transition
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                regime_duration, regime_transition,
+                rsi_x_regime, macd_x_regime, volume_x_regime,
+                breakout_x_regime, momentum_x_regime,
+                breadth_x_regime, rs_x_regime, bb_x_regime
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 meta.symbol, meta.date, meta.snapshot_time,
                 meta.bullish_expert_count, meta.bearish_expert_count,
@@ -116,6 +127,14 @@ class FeatureMatrixWriter:
                 meta.breakout_count,
                 meta.regime_duration,
                 round(meta.regime_transition, 6),
+                round(meta.rsi_x_regime, 6),
+                round(meta.macd_x_regime, 6),
+                round(meta.volume_x_regime, 6),
+                round(meta.breakout_x_regime, 6),
+                round(meta.momentum_x_regime, 6),
+                round(meta.breadth_x_regime, 6),
+                round(meta.rs_x_regime, 6),
+                round(meta.bb_x_regime, 6),
             ),
         )
 
@@ -251,6 +270,14 @@ class FeatureMatrixWriter:
         vector["breakout_count"] = meta.breakout_count
         vector["regime_duration"] = meta.regime_duration
         vector["regime_transition"] = round(meta.regime_transition, 6)
+        vector["rsi_x_regime"] = round(meta.rsi_x_regime, 6)
+        vector["macd_x_regime"] = round(meta.macd_x_regime, 6)
+        vector["volume_x_regime"] = round(meta.volume_x_regime, 6)
+        vector["breakout_x_regime"] = round(meta.breakout_x_regime, 6)
+        vector["momentum_x_regime"] = round(meta.momentum_x_regime, 6)
+        vector["breadth_x_regime"] = round(meta.breadth_x_regime, 6)
+        vector["rs_x_regime"] = round(meta.rs_x_regime, 6)
+        vector["bb_x_regime"] = round(meta.bb_x_regime, 6)
 
         # 3 regime scores (from market.db)
         conn = sqlite3.connect(self.market_db)

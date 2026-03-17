@@ -8,10 +8,11 @@ hyperparams:
   learning_rate: 0.02
   l2_leaf_reg: 8
   random_seed: 42
-  task_type: GPU
-  devices: '0'
+  task_type: CPU
+  thread_count: -1
   verbose: 0
   auto_class_weights: Balanced
+  prob_up_threshold: 0.78
 regime_weights:
   strong_bear: 5.0
   bear: 3.0

@@ -102,8 +102,8 @@ class R7Model(RBaseModel):
         if len(X) < 100:
             return {"error": "insufficient data"}
 
-        label_map = {"DOWN": 0, "NEUTRAL": 1, "UP": 2}
-        y_encoded = y_label.map(label_map).fillna(1).astype(int)
+        # Binary classification: UP=1 vs NOT_UP=0 (enables monotonic constraints)
+        y_binary = (y_label == "UP").astype(int)
 
         # Compute regime-aware sample weights
         sample_weights = self._compute_sample_weights(X)
@@ -112,25 +112,25 @@ class R7Model(RBaseModel):
         constraints = self._build_constraints(list(X.columns))
         n_constrained = sum(1 for c in constraints if c != 0)
 
+        # CatBoost: CPU required for monotonic constraints
         self.model = CatBoostClassifier(
             iterations=2000, depth=6, learning_rate=0.02,
             l2_leaf_reg=8, random_seed=42, verbose=0,
-            task_type="GPU", devices="0",
+            task_type="CPU", thread_count=-1,
             auto_class_weights="Balanced",
             monotone_constraints=constraints,
         )
-        self.model.fit(X, y_encoded, sample_weight=sample_weights)
+        self.model.fit(X, y_binary, sample_weight=sample_weights)
         self.model_version = f"R7_v2_{datetime.now():%Y%m%d}"
-        self._label_map = label_map
-        self._label_inv = {v: k for k, v in label_map.items()}
+        self._binary_mode = True
         self.feature_importances_ = dict(zip(X.columns, self.model.feature_importances_))
 
         preds = self.model.predict(X).flatten()
-        pred_labels = pd.Series(preds.astype(int)).map(self._label_inv)
         metrics = {
-            "accuracy": round(accuracy_score(y_label, pred_labels), 4),
-            "f1_weighted": round(f1_score(y_label, pred_labels, average="weighted"), 4),
+            "accuracy": round(accuracy_score(y_binary, preds), 4),
+            "f1_weighted": round(f1_score(y_binary, preds, average="weighted"), 4),
             "samples": len(X),
+            "positive_rate": round(float(y_binary.mean()), 4),
             "monotonic_constrained": n_constrained,
             "bear_weight_samples": int(np.sum(sample_weights >= 3.0)),
         }
@@ -162,12 +162,19 @@ class R7Model(RBaseModel):
 
         results = []
         for i in range(len(sym_dates)):
-            p_down = float(probs[i][0])
-            p_neut = float(probs[i][1]) if probs.shape[1] > 2 else 0.0
-            p_up = float(probs[i][-1])
+            # Binary mode: probs = [p_not_up, p_up]
+            p_up = float(probs[i][1]) if probs.shape[1] > 1 else float(probs[i][0])
+            p_not_up = 1.0 - p_up
 
-            score = max(-4.0, min(4.0, (p_up - p_down) * 4))
-            confidence = max(p_up, p_down, p_neut)
+            # Score: positive = bullish, scaled to -4..+4
+            score = max(-4.0, min(4.0, (p_up - 0.5) * 8))
+            confidence = max(p_up, p_not_up)
+
+            # Hard threshold: only emit BUY when prob_up >= 0.78
+            # Target: ~1000 signals / 3000 days
+            if p_up < 0.78:
+                score = 0.0
+
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 
             results.append({
