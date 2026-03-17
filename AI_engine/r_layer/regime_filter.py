@@ -76,10 +76,18 @@ class RegimeFilter:
         return ctx
 
     def get_buy_threshold(
-        self, ctx: RegimeContext, base_threshold: float = 0.55
+        self, ctx: RegimeContext, base_threshold: float = 0.55,
+        model_type: str = "standard",
     ) -> float | None:
         """
         Get dynamic BUY threshold based on regime path.
+
+        Args:
+            ctx: RegimeContext
+            base_threshold: model's base threshold
+            model_type: 'standard' (3-class models) or 'binary' (R7 CatBoost)
+                         Binary models have tighter p_up range (0.50-0.65),
+                         so thresholds are reduced by 10%.
 
         Returns:
             float: threshold (higher = more selective)
@@ -88,35 +96,60 @@ class RegimeFilter:
         if not ctx.has_data:
             return base_threshold
 
-        r = ctx.raw_regime
-        delta = ctx.regime_delta
-        r10 = ctx.regime_t10
-
-        if r >= 2.0:
-            # Strong Bull — most permissive
-            return 0.55
-        elif r >= 1.0:
-            # Bull
-            return 0.60
-        elif r >= 0.0:
-            # Neutral — depends on trajectory
-            if r10 >= 1.0 and delta < -0.3:
-                return 0.70  # Neutral coming DOWN from bull — be cautious
-            elif r10 <= -1.0:
-                return 0.60  # Neutral recovering FROM bear — allow entries
-            else:
-                return 0.65  # Neutral sideways
-        elif r >= -1.0:
-            # Weak Bear — very selective or block
-            if r10 <= -2.0:
-                return 0.70  # Weak bear recovering from deep bear
-            elif delta > 0.3:
-                return 0.60  # Weak bear but improving
-            else:
-                return None  # BLOCK — no recovery signal
+        # Binary models (R7 CatBoost) have p_up range ~0.36-0.58
+        # Standard models (3-class) have p_up range ~0.20-0.90
+        # Use separate threshold tables
+        if model_type == "binary":
+            return self._threshold_binary(r=ctx.raw_regime, delta=ctx.regime_delta, r10=ctx.regime_t10)
         else:
-            # Bear (< -1) — BLOCK completely
+            return self._threshold_standard(r=ctx.raw_regime, delta=ctx.regime_delta, r10=ctx.regime_t10)
+
+    def _threshold_standard(self, r: float, delta: float, r10: float) -> float | None:
+        """Thresholds for 3-class models (R0, R2, R3, R4, R5, R6)."""
+        if r >= 2.0:
+            return 0.52
+        elif r >= 1.0:
+            return 0.55
+        elif r >= 0.0:
+            if r10 >= 1.0 and delta < -0.3:
+                return 0.62
+            elif r10 <= -1.0:
+                return 0.55
+            else:
+                return 0.58
+        elif r >= -1.0:
+            if r10 <= -2.0:
+                return 0.62
+            elif delta > 0.3:
+                return 0.55
+            else:
+                return None
+        else:
             return None
+
+    def _threshold_binary(self, r: float, delta: float, r10: float) -> float | None:
+        """Thresholds for binary model (R7 CatBoost, p_up range ~0.36-0.58).
+        Target: ~500 signals/year = top ~2% of predictions."""
+        if r >= 2.0:
+            return 0.545          # Strong Bull — most permissive
+        elif r >= 1.0:
+            return 0.550          # Bull
+        elif r >= 0.0:
+            if r10 >= 1.0 and delta < -0.3:
+                return 0.560      # Neutral from bull down — cautious
+            elif r10 <= -1.0:
+                return 0.550      # Neutral from bear up
+            else:
+                return 0.555      # Neutral sideways
+        elif r >= -1.0:
+            if r10 <= -2.0:
+                return 0.560      # Weak bear from deep
+            elif delta > 0.3:
+                return 0.550      # Weak bear improving
+            else:
+                return None       # BLOCK
+        else:
+            return None           # BLOCK
 
     def get_sell_strength(self, ctx: RegimeContext) -> str | None:
         """
@@ -173,6 +206,7 @@ class RegimeFilter:
     def apply_filter(
         self, score: float, p_up: float, ctx: RegimeContext,
         base_threshold: float = 0.55,
+        model_type: str = "standard",
     ) -> float:
         """
         Apply regime filter to a model's raw score.
@@ -182,6 +216,7 @@ class RegimeFilter:
             p_up: probability of UP class (for threshold models)
             ctx: RegimeContext
             base_threshold: model's base threshold
+            model_type: 'standard' or 'binary'
 
         Returns:
             filtered score (0.0 if blocked)
@@ -189,7 +224,7 @@ class RegimeFilter:
         if score <= 0:
             return score  # Don't filter sell/neutral signals
 
-        threshold = self.get_buy_threshold(ctx, base_threshold)
+        threshold = self.get_buy_threshold(ctx, base_threshold, model_type)
         if threshold is None:
             return 0.0  # BLOCKED
 

@@ -171,12 +171,14 @@ class R7Model(RBaseModel):
             p_up = float(probs[i][1]) if probs.shape[1] > 1 else float(probs[i][0])
             p_not_up = 1.0 - p_up
 
-            # Score: positive = bullish, scaled to -4..+4
-            score = max(-4.0, min(4.0, (p_up - 0.5) * 8))
+            # Score: scaled to -4..+4 using R7's actual probability range
+            # R7 binary model: p_up range ~0.36-0.58, center ~0.47
+            # Map 0.47 → 0, 0.58 → +4, 0.36 → -4
+            score = max(-4.0, min(4.0, (p_up - 0.47) / 0.11 * 4.0))
             confidence = max(p_up, p_not_up)
 
-            # Apply RegimeFilter (replaces old regime-adaptive threshold logic)
-            score = rf.apply_filter(score, p_up, regime_ctx, base_threshold=0.55)
+            # Apply RegimeFilter
+            score = rf.apply_filter(score, p_up, regime_ctx, base_threshold=0.50, model_type="binary")
 
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 
