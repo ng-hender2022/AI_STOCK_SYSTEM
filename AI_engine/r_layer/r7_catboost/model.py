@@ -171,27 +171,27 @@ class R7Model(RBaseModel):
             p_up = float(probs[i][1]) if probs.shape[1] > 1 else float(probs[i][0])
             p_not_up = 1.0 - p_up
 
-            # Score: scaled to -4..+4 centered on actual R7 v1 distribution
-            # Actual: mean=0.33, std=0.06, range 0.15-0.69
-            # Map 0.33 → 0, ±2std (0.12) → ±4
-            score = max(-4.0, min(4.0, (p_up - 0.33) / 0.12 * 4.0))
+            # Score: scaled to -4..+4 centered on actual R7 v2 distribution
+            # Retrained: mean=0.48, std=0.07, range 0.19-0.90
+            # Map 0.48 -> 0, +/-2std (0.14) -> +/-4
+            score = max(-4.0, min(4.0, (p_up - 0.48) / 0.14 * 4.0))
             confidence = max(p_up, p_not_up)
 
-            # --- BUY filter: p_up must be top ~3-5% AND regime favorable ---
+            # --- BUY filter: p_up must be top ~5% AND regime favorable ---
             if score > 0:
-                if p_up < 0.44:
+                if p_up < 0.61:
                     score = 0.0  # Not strong enough signal
                 else:
                     sell_str = rf.get_sell_strength(regime_ctx)
                     if sell_str in ("STRONG", "NORMAL"):
                         score = 0.0  # Bear regime — block BUY
 
-            # --- SELL filter: p_up must be bottom ~2-3% AND regime bearish ---
+            # --- SELL filter: p_up must be bottom ~3.5% AND regime bearish ---
             if score < 0:
                 sell_str = rf.get_sell_strength(regime_ctx)
                 if sell_str is None:
                     score = 0.0  # Bull regime — suppress SELL
-                elif p_up > 0.22:
+                elif p_up > 0.34:
                     score = 0.0  # Not bearish enough signal
                 elif sell_str == "WEAK":
                     score *= 0.5  # Bear improving — dampen SELL
