@@ -176,11 +176,12 @@ class MetaBuilder:
         return result
 
     def _fetch_regime(self, date: str) -> float:
-        """Fetch regime score from market.db."""
+        """Fetch regime score from market.db using T-1 (anti-leakage).
+        Features for date T must only use data up to close of T-1."""
         conn = self._connect_market()
         try:
             row = conn.execute(
-                "SELECT regime_score FROM market_regime WHERE date=? AND snapshot_time='EOD'",
+                "SELECT regime_score FROM market_regime WHERE date<? AND snapshot_time='EOD' ORDER BY date DESC LIMIT 1",
                 (date,),
             ).fetchone()
             return float(row["regime_score"]) if row else 0.0
@@ -370,15 +371,15 @@ class MetaBuilder:
 
     def _compute_regime_context(self, date: str) -> tuple[int, float]:
         """
-        Compute regime_duration and regime_transition.
+        Compute regime_duration and regime_transition using T-1 data (anti-leakage).
         - regime_duration: consecutive days with same regime direction
-        - regime_transition: regime_score[t] - regime_score[t-3]
+        - regime_transition: regime_score[t-1] - regime_score[t-4]
         """
         conn = self._connect_market()
         try:
             rows = conn.execute(
                 """SELECT date, regime_score FROM market_regime
-                   WHERE date <= ? AND snapshot_time='EOD'
+                   WHERE date < ? AND snapshot_time='EOD'
                    ORDER BY date DESC LIMIT 10""",
                 (date,),
             ).fetchall()

@@ -170,10 +170,21 @@ class R7Model(RBaseModel):
             score = max(-4.0, min(4.0, (p_up - 0.5) * 8))
             confidence = max(p_up, p_not_up)
 
-            # Hard threshold: only emit BUY when prob_up >= 0.78
-            # Target: ~1000 signals / 3000 days
-            if p_up < 0.78:
-                score = 0.0
+            # Regime-adaptive threshold for BUY signals
+            # regime_score is normalized (/4), denormalize to raw -4..+4
+            raw_regime = float(X_feat.iloc[i].get("regime_score", 0.0)) * 4.0
+            if raw_regime <= -2.0:
+                # Bear: block all BUY signals
+                if score > 0:
+                    score = 0.0
+            elif raw_regime <= -1.0:
+                # Weak Bear: only very strong signals pass
+                if p_up < 0.75:
+                    score = 0.0
+            else:
+                # Neutral/Bull: normal threshold
+                if p_up < 0.60:
+                    score = 0.0
 
             direction = 1 if score > 0.5 else (-1 if score < -0.5 else 0)
 
