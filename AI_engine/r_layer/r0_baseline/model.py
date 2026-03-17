@@ -36,7 +36,7 @@ class R0Model(RBaseModel):
 
         # Train
         self.model = LogisticRegression(
-            C=1.0, max_iter=500, class_weight="balanced", solver="lbfgs"
+            C=1.0, max_iter=2000, class_weight="balanced", solver="lbfgs"
         )
         self.model.fit(X_bin, y_bin)
         self.model_version = f"R0_v1_{datetime.now():%Y%m%d}"

@@ -56,6 +56,8 @@ class FeatureMatrixWriter:
             "bull_bear_ratio": "REAL DEFAULT 0.5",
             "sector_momentum": "REAL DEFAULT 0",
             "breakout_count": "INTEGER DEFAULT 0",
+            "regime_duration": "INTEGER DEFAULT 0",
+            "regime_transition": "REAL DEFAULT 0",
         }
         for col, typedef in new_cols.items():
             if col not in existing:
@@ -81,8 +83,9 @@ class FeatureMatrixWriter:
                 volume_pressure, liquidity_shock_avg, climax_volume_count,
                 compression_count,
                 bull_bear_ratio, sector_momentum,
-                breakout_count
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                breakout_count,
+                regime_duration, regime_transition
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 meta.symbol, meta.date, meta.snapshot_time,
                 meta.bullish_expert_count, meta.bearish_expert_count,
@@ -111,6 +114,8 @@ class FeatureMatrixWriter:
                 round(meta.bull_bear_ratio, 6),
                 round(meta.sector_momentum, 6),
                 meta.breakout_count,
+                meta.regime_duration,
+                round(meta.regime_transition, 6),
             ),
         )
 
@@ -244,6 +249,8 @@ class FeatureMatrixWriter:
         vector["bull_bear_ratio"] = round(meta.bull_bear_ratio, 6)
         vector["sector_momentum"] = round(meta.sector_momentum, 6)
         vector["breakout_count"] = meta.breakout_count
+        vector["regime_duration"] = meta.regime_duration
+        vector["regime_transition"] = round(meta.regime_transition, 6)
 
         # 3 regime scores (from market.db)
         conn = sqlite3.connect(self.market_db)

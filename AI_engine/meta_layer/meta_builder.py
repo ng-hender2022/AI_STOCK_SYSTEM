@@ -107,6 +107,10 @@ class MetaFeatures:
     # Price structure
     breakout_count: int = 0             # count breakout flags
 
+    # Regime context (for regime-aware training)
+    regime_duration: int = 0            # days in current regime direction
+    regime_transition: float = 0.0      # regime_score[t] - regime_score[t-3]
+
 
 class MetaBuilder:
     """
@@ -319,6 +323,9 @@ class MetaBuilder:
             bcount += 1
         meta.breakout_count = bcount
 
+        # Regime context: duration + transition
+        meta.regime_duration, meta.regime_transition = self._compute_regime_context(date)
+
         return meta
 
     def build_all(
@@ -337,6 +344,47 @@ class MetaBuilder:
             conn.close()
 
         return [self.build(sym, date) for sym in symbols]
+
+    def _compute_regime_context(self, date: str) -> tuple[int, float]:
+        """
+        Compute regime_duration and regime_transition.
+        - regime_duration: consecutive days with same regime direction
+        - regime_transition: regime_score[t] - regime_score[t-3]
+        """
+        conn = self._connect_market()
+        try:
+            rows = conn.execute(
+                """SELECT date, regime_score FROM market_regime
+                   WHERE date <= ? AND snapshot_time='EOD'
+                   ORDER BY date DESC LIMIT 10""",
+                (date,),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            return 0, 0.0
+
+        scores = [float(r["regime_score"]) if r["regime_score"] else 0.0 for r in rows]
+        # scores[0] = current, scores[1] = yesterday, etc.
+
+        # Transition: current - 3 days ago
+        transition = 0.0
+        if len(scores) >= 4:
+            transition = scores[0] - scores[3]
+
+        # Duration: count consecutive days with same sign as current
+        duration = 1
+        if len(scores) >= 2:
+            current_sign = 1 if scores[0] > 0 else (-1 if scores[0] < 0 else 0)
+            for i in range(1, len(scores)):
+                s = 1 if scores[i] > 0 else (-1 if scores[i] < 0 else 0)
+                if s == current_sign:
+                    duration += 1
+                else:
+                    break
+
+        return duration, transition
 
     @staticmethod
     def _group_avg(norms: dict[str, float], group_name: str) -> float:

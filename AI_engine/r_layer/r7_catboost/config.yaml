@@ -1,14 +1,19 @@
 model_id: R7
-model_name: CatBoost Classifier
+model_name: CatBoost Classifier (Regime-Aware)
 model_type: classification
 default_horizon: 5
 hyperparams:
-  iterations: 300
+  iterations: 2000
   depth: 6
-  learning_rate: 0.05
-  l2_leaf_reg: 3
+  learning_rate: 0.02
+  l2_leaf_reg: 8
   random_seed: 42
   task_type: GPU
   devices: '0'
   verbose: 0
   auto_class_weights: Balanced
+regime_weights:
+  strong_bear: 5.0
+  bear: 3.0
+  sideways: 1.5
+  bull: 1.0

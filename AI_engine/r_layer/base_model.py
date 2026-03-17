@@ -197,7 +197,8 @@ class RBaseModel(ABC):
                    momentum_divergence_count, overbought_count, oversold_count,
                    volume_pressure, liquidity_shock_avg, climax_volume_count,
                    compression_count, bull_bear_ratio, sector_momentum,
-                   breakout_count
+                   breakout_count,
+                   regime_duration, regime_transition
             FROM meta_features
             WHERE date >= ? AND date <= ?
         """

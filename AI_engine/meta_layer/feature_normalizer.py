@@ -59,6 +59,7 @@ CAT_C = {
     "v4ma_slope_50",
     "v4ma_slope_200",
     "v4br_new_high_low_ratio",
+    "regime_transition",
 }
 
 # Category D: Ratios → log(1 + x), input must be >= 0
@@ -177,6 +178,7 @@ CAT_H_COUNT = {
     "climax_volume_count": 1.0,
     "compression_count": 2.0,
     "breakout_count": 3.0,
+    "regime_duration": 10.0,           # cap at 10 days
 }
 
 # Expert norms — already normalized -1..+1, no change

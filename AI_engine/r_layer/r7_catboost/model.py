@@ -1,20 +1,52 @@
 """
-R7 CatBoost — Classification model
-Handles categorical features natively. Strong regularization.
+R7 CatBoost — Regime-Aware Classification model
+Monotonic constraints + sample weighting per market regime.
 """
 
 from datetime import datetime
+import sqlite3
 import numpy as np
 import pandas as pd
 
 try:
-    from catboost import CatBoostClassifier
+    from catboost import CatBoostClassifier, Pool
     HAS_CATBOOST = True
 except ImportError:
     HAS_CATBOOST = False
 
 from sklearn.metrics import accuracy_score, f1_score
 from ..base_model import RBaseModel
+
+# Monotonic constraints per AI_STOCK_MONOTONIC_CONSTRAINT_MAP
+# Maps feature column name -> constraint (1=positive, -1=negative, 0=neutral)
+MONOTONIC_CONSTRAINTS = {
+    # Positive: higher value → more bullish
+    "v4p_trend_persistence": 1,
+    "v4ma_alignment_score": 1,
+    "trend_strength_max": 1,
+    "v4rs_rank": 1,
+    "sector_momentum": 1,
+    "momentum_group_score": 1,
+    "v4v_volume_ratio_20": 1,
+    "volume_pressure": 1,
+    "v4liq_liquidity_shock": 1,
+    "liquidity_shock_avg": 1,
+    "trend_group_score": 1,
+    "trend_alignment_score": 1,
+    "expert_alignment_score": 1,
+    # Negative: higher value → less bullish
+    "v4atr_pct": -1,
+    "v4atr_percentile": -1,
+    "v4bb_width": -1,
+    "volatility_group_score": -1,
+    # Neutral: no constraint (oscillators, patterns, flags)
+    "v4rsi_norm": 0,
+    "v4sto_norm": 0,
+    "v4macd_hist_slope": 0,
+    "v4candle_volume_confirm": 0,
+    "v4p_breakout20_flag": 0,
+    "v4p_breakout60_flag": 0,
+}
 
 
 class R7Model(RBaseModel):
@@ -25,6 +57,41 @@ class R7Model(RBaseModel):
         self.feature_importances_ = None
         if not HAS_CATBOOST:
             raise ImportError("catboost required for R7. pip install catboost")
+
+    def _compute_sample_weights(self, X: pd.DataFrame) -> np.ndarray:
+        """
+        Compute sample weights based on market regime.
+        Strong Bear (regime_score <= -3): 5.0x
+        Bear (regime_score <= -2): 3.0x
+        Sideways (-1..+1): 1.5x
+        Bull (regime_score >= +2): 1.0x
+        """
+        weights = np.ones(len(X), dtype=float)
+
+        if "regime_score" in X.columns:
+            regime = X["regime_score"].values
+            # regime_score is already normalized by /4 in feature_normalizer
+            # so -1..+1 maps to raw -4..+4. Multiply back for thresholds.
+            raw_regime = regime * 4.0
+        else:
+            return weights
+
+        for i in range(len(raw_regime)):
+            r = raw_regime[i]
+            if r <= -3.0:
+                weights[i] = 5.0
+            elif r <= -2.0:
+                weights[i] = 3.0
+            elif -1.0 <= r <= 1.0:
+                weights[i] = 1.5
+            else:
+                weights[i] = 1.0
+
+        return weights
+
+    def _build_constraints(self, feature_names: list[str]) -> list[int]:
+        """Build monotonic constraints vector aligned with feature order."""
+        return [MONOTONIC_CONSTRAINTS.get(f, 0) for f in feature_names]
 
     def train(self, train_start, train_end, horizon=5, **kwargs):
         X, y_return, y_label = self.prepare_training_data(
@@ -38,14 +105,22 @@ class R7Model(RBaseModel):
         label_map = {"DOWN": 0, "NEUTRAL": 1, "UP": 2}
         y_encoded = y_label.map(label_map).fillna(1).astype(int)
 
+        # Compute regime-aware sample weights
+        sample_weights = self._compute_sample_weights(X)
+
+        # Build monotonic constraints
+        constraints = self._build_constraints(list(X.columns))
+        n_constrained = sum(1 for c in constraints if c != 0)
+
         self.model = CatBoostClassifier(
-            iterations=300, depth=6, learning_rate=0.05,
-            l2_leaf_reg=3, random_seed=42, verbose=0,
+            iterations=2000, depth=6, learning_rate=0.02,
+            l2_leaf_reg=8, random_seed=42, verbose=0,
             task_type="GPU", devices="0",
             auto_class_weights="Balanced",
+            monotone_constraints=constraints,
         )
-        self.model.fit(X, y_encoded)
-        self.model_version = f"R7_v1_{datetime.now():%Y%m%d}"
+        self.model.fit(X, y_encoded, sample_weight=sample_weights)
+        self.model_version = f"R7_v2_{datetime.now():%Y%m%d}"
         self._label_map = label_map
         self._label_inv = {v: k for k, v in label_map.items()}
         self.feature_importances_ = dict(zip(X.columns, self.model.feature_importances_))
@@ -56,6 +131,8 @@ class R7Model(RBaseModel):
             "accuracy": round(accuracy_score(y_label, pred_labels), 4),
             "f1_weighted": round(f1_score(y_label, pred_labels, average="weighted"), 4),
             "samples": len(X),
+            "monotonic_constrained": n_constrained,
+            "bear_weight_samples": int(np.sum(sample_weights >= 3.0)),
         }
 
         self.write_training_history(

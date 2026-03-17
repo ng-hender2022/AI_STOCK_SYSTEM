@@ -4,6 +4,6 @@ model_type: classification
 default_horizon: 5
 hyperparams:
   C: 1.0
-  max_iter: 500
+  max_iter: 2000
   class_weight: balanced
   solver: lbfgs
